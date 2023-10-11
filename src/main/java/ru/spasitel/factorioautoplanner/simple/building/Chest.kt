@@ -1,16 +1,9 @@
 package ru.spasitel.factorioautoplanner.simple.building
 
-import lombok.EqualsAndHashCode
-import lombok.Getter
-import lombok.Setter
-import lombok.ToString
 import java.util.*
 
-@ToString(callSuper = true)
-@EqualsAndHashCode(callSuper = true)
-@Getter
-@Setter
-class Chest(x: Int, y: Int) : Building(x, y) {
+
+data class Chest(override val x: Int, override val y: Int) : Building(x, y) {
     private val provider: Boolean? = null
     override fun toJson(number: Int): String {
         return if (java.lang.Boolean.FALSE == provider) String.format(

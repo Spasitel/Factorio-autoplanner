@@ -4,7 +4,7 @@ import ru.spasitel.factorioautoplanner.simple.building.Building
 import ru.spasitel.factorioautoplanner.simple.building.Smelter
 import ru.spasitel.factorioautoplanner.simple.building.Type
 
-class State(var buildings: Set<Building>, var score: Double, var area: Int, var map: Array<Array<Building?>?>) {
+class State(var buildings: Set<Building>, var score: Double, var area: Int, var map: Array<Array<Building?>>) {
     private fun checkState() {
         if (Main.debug) {
             var checked = 0

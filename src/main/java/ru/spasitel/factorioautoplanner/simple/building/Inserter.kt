@@ -1,12 +1,9 @@
 package ru.spasitel.factorioautoplanner.simple.building
 
-import lombok.EqualsAndHashCode
-import lombok.ToString
 import java.util.*
 
-@ToString(callSuper = true)
-@EqualsAndHashCode(callSuper = true)
-class Inserter(x: Int, y: Int, private val direction: Int) : Building(x, y) {
+
+data class Inserter(override val x: Int, override val y: Int, private val direction: Int) : Building(x, y) {
     override fun toJson(number: Int): String {
         return String.format(Locale.US, INSERTER, number, x + 0.5, y + 0.5, direction)
     }

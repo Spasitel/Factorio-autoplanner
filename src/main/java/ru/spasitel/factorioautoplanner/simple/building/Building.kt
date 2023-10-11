@@ -1,11 +1,7 @@
 package ru.spasitel.factorioautoplanner.simple.building
 
-import lombok.EqualsAndHashCode
-import lombok.ToString
 
-@ToString
-@EqualsAndHashCode
-abstract class Building(val x: Int, val y: Int) {
+abstract class Building(open val x: Int, open val y: Int) {
     abstract fun toJson(number: Int): String
     abstract val type: Type
     abstract val size: Int

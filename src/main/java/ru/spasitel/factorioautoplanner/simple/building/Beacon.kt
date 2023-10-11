@@ -1,12 +1,9 @@
 package ru.spasitel.factorioautoplanner.simple.building
 
-import lombok.EqualsAndHashCode
-import lombok.ToString
 import java.util.*
 
-@ToString(callSuper = true)
-@EqualsAndHashCode(callSuper = true)
-class Beacon(x: Int, y: Int) : Building(x, y) {
+
+data class Beacon(override val x: Int, override val y: Int) : Building(x, y) {
     override val type: Type
         get() = Type.BEACON
     override val size: Int

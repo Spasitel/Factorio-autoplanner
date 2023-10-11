@@ -1,14 +1,9 @@
 package ru.spasitel.factorioautoplanner.simple.building
 
-import lombok.EqualsAndHashCode
-import lombok.Getter
-import lombok.ToString
 import java.util.*
 
-@ToString(callSuper = true)
-@EqualsAndHashCode(callSuper = true)
-@Getter
-class Smelter(x: Int, y: Int) : Building(x, y) {
+
+data class Smelter(override val x: Int, override val y: Int) : Building(x, y) {
     val connected: MutableMap<Chest, Inserter> = HashMap()
     override fun toJson(number: Int): String {
         return String.format(Locale.US, SMELTER, number, x + 1.5, y + 1.5)

@@ -18,7 +18,7 @@ object Main {
 
     @JvmStatic
     fun main(args: Array<String>) {
-        var start: State? = State(emptySet(), .0, 0, arrayOfNulls(SIZE))
+        var start: State? = State(emptySet(), .0, 0, Array(SIZE) { arrayOfNulls(SIZE) })
         start = start?.addBuilding(EmptySpace(0, 0, 1))
         start = start?.addBuilding(EmptySpace(SIZE - 1, 0, 1))
         start = start?.addBuilding(EmptySpace(0, SIZE - 1, 1))
@@ -39,7 +39,7 @@ object Main {
 
     private fun calculateForStart(score: Double, start: State) {
         val stateScores = TreeMap<Double, MutableList<State>>()
-        stateScores[score] = java.util.List.of(start)
+        stateScores[score] = listOf(start).toMutableList()
         var localMax = 0.0
         var bestCount: Long = 0
         var count: Long = 0
@@ -67,7 +67,7 @@ object Main {
                 if (stateScores.containsKey(scoreByArea)) {
                     stateScores[scoreByArea]!!.add(s)
                 } else {
-                    stateScores[scoreByArea] = ArrayList(java.util.List.of(s))
+                    stateScores[scoreByArea] = ArrayList(listOf(s))
                 }
             })
         }
@@ -153,10 +153,10 @@ object Main {
         return State(withChests.buildings, score, area, withChests.map)
     }
 
-    fun copyOf(map: Array<Array<Building?>?>): Array<Array<Building?>?> {
-        val newMap: Array<Array<Building?>?> = arrayOfNulls(SIZE)
+    fun copyOf(map: Array<Array<Building?>>): Array<Array<Building?>> {
+        val newMap: Array<Array<Building?>> = Array(SIZE) { arrayOfNulls(SIZE) }
         for (x in 0 until SIZE) {
-            newMap[x] = map[x]?.copyOf(SIZE)
+            newMap[x] = map[x].copyOf(SIZE)
         }
         return newMap
     }
