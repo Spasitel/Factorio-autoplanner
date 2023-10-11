@@ -1,0 +1,126 @@
+package ru.spasitel.factorioautoplanner.greedy
+
+import ru.spasitel.factorioautoplanner.data.Place
+import ru.spasitel.factorioautoplanner.data.Sell
+import ru.spasitel.factorioautoplanner.data.State
+import ru.spasitel.factorioautoplanner.data.Utils
+import ru.spasitel.factorioautoplanner.data.building.Building
+import ru.spasitel.factorioautoplanner.data.building.BuildingType
+import ru.spasitel.factorioautoplanner.data.building.Chest
+import ru.spasitel.factorioautoplanner.data.building.Inserter
+
+class Planner {
+
+
+    fun greedy(state: State, types: List<BuildingType>): State {
+        var currentState = state
+        while (true) {
+            val newState = greedyStep(currentState, types) ?: return currentState
+            currentState = newState
+        }
+    }
+
+    private fun greedyStep(state: State, types: List<BuildingType>): State? {
+        val forBuild = getClosestPlace(state) ?: return null
+        // try all buildings that intersect with forBuild
+        var bestState: State? = null
+        var bestScore = 0.0
+        for (type in types) {
+            val newStates: Set<State> =
+                if (type == BuildingType.BEACON)
+                    generateBeaconStates(state, forBuild)
+                else generateStates(state, forBuild, type)
+
+
+            for (newState in newStates) {
+                if (newState.score.value > bestScore) {
+                    bestScore = newState.score.value
+                    bestState = newState
+                }
+            }
+        }
+        return bestState
+    }
+
+    private fun generateStates(state: State, forBuild: Sell, type: BuildingType): Set<State> {
+        val newStates = HashSet<State>()
+        for (x in -4 until 5) {
+            for (y in -4 until 5) {
+                val start = Sell.get(forBuild.x + x, forBuild.y + y)
+                // build and add to newStates
+                val building = Utils.getBuilding(start, type)
+                val withoutChests = state.addBuilding(building) ?: continue
+                val withInputChest = addChests(withoutChests, building, BuildingType.REQUEST_CHEST)
+                for (withInputChestState in withInputChest) {
+                    val withOutputChest = addChests(withInputChestState, building, BuildingType.PROVIDER_CHEST)
+                    for (withOutputChestState in withOutputChest) {
+                        if (!withOutputChestState.freeSells.value.contains(forBuild))
+                            newStates.add(withOutputChestState)
+                    }
+                }
+            }
+        }
+        return newStates
+    }
+
+    private fun addChests(withoutChests: State, building: Building, type: BuildingType): Set<State> {
+        val newStates = HashSet<State>()
+        for (chest in Utils.chestsPositions(building)) {
+            if (withoutChests.map.containsKey(chest.first) ||
+                (withoutChests.map.containsKey(chest.second)
+                        && withoutChests.map.getValue(chest.second).type != type)
+            ) {
+                continue
+            }
+            val inserterBuilding = Inserter(
+                Place(setOf(chest.first), chest.first),
+                if (type == BuildingType.PROVIDER_CHEST) (chest.third + 4).mod(8) else chest.third
+            )
+            val chestBuilding = Chest(
+                Place(setOf(chest.second), chest.second),
+                type == BuildingType.PROVIDER_CHEST
+            )
+            withoutChests.addBuilding(inserterBuilding)?.let {
+                if (!withoutChests.map.containsKey(chest.second)) {
+                    it.addBuilding(chestBuilding)?.let { state -> newStates.add(state) }
+                } else {
+                    newStates.add(it)
+                }
+            }
+        }
+        return newStates
+    }
+
+    private fun generateBeaconStates(state: State, forBuild: Sell): Set<State> {
+        val newStates = HashSet<State>()
+        for (x in -2 until 3) {
+            for (y in -2 until 3) {
+                val start = Sell.get(forBuild.x + x, forBuild.y + y)
+                // build and add to newStates
+                val building = Utils.getBuilding(start, BuildingType.BEACON)
+                state.addBuilding(building)?.let { newStates.add(it) }
+            }
+        }
+        return newStates
+    }
+
+
+    //choose the closest place for building
+    private fun getClosestPlace(state: State): Sell? {
+        var minDistance = Int.MAX_VALUE
+        var closestStart: Sell? = null
+        for (start in state.freeSells.value) {
+            val distance = getDistance(state, start)
+            if (distance < minDistance) {
+                minDistance = distance
+                closestStart = start
+            }
+        }
+
+        return closestStart
+    }
+
+    private fun getDistance(state: State, start: Sell): Int {
+        return start.x * start.x + start.y * start.y
+    }
+}

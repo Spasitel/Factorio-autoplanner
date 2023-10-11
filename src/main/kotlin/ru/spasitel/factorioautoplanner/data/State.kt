@@ -1,5 +1,7 @@
 package ru.spasitel.factorioautoplanner.data
 
+import ru.spasitel.factorioautoplanner.data.building.Building
+import ru.spasitel.factorioautoplanner.data.building.BuildingType
 import kotlin.math.abs
 
 
@@ -69,14 +71,11 @@ data class State(
         for (x in 0 until size.x) {
             for (y in 0 until size.y) {
 
-                when (map[Sell.get(x, y)]?.type) {
-                    BuildingType.SMELTER -> str.append('S')
-                    BuildingType.BEACON -> str.append('B')
-                    BuildingType.INSERTER -> str.append('>')
-                    BuildingType.INPUT_CHEST -> str.append('I')
-                    BuildingType.OUTPUT_CHEST -> str.append('O')
-                    null -> str.append('.')
-                    else -> str.append('E')
+                val building = map[Sell.get(x, y)]
+                if (building == null) {
+                    str.append('.')
+                } else {
+                    str.append(building.symbol)
                 }
             }
             str.append("\n")
@@ -92,6 +91,13 @@ data class State(
     }
 
     fun addBuilding(building: Building): State? {
+        if (building.place.sells.any { it.x >= size.x || it.y >= size.y }) {
+            return null
+        }
+        if (building.place.sells.any { it.x < 0 || it.y < 0 }) {
+            return null
+        }
+
         if (building.place.sells.intersect(map.keys).isNotEmpty()) {
             return null
         }
