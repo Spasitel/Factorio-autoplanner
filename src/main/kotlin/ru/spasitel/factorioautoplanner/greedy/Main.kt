@@ -18,11 +18,13 @@ object Main {
         start = start?.addBuilding(Utils.getBuilding(Sell.get(SIZE - 1, 0), BuildingType.EMPTY))
         start = start?.addBuilding(Utils.getBuilding(Sell.get(0, SIZE - 1), BuildingType.EMPTY))
         start = start?.addBuilding(Utils.getBuilding(Sell.get(SIZE - 1, SIZE - 1), BuildingType.EMPTY))
-        printBest(Planner().greedy(start!!, listOf(BuildingType.SMELTER, BuildingType.BEACON)))
-
+        val greedy = GreedyPlanner().greedy(start!!, listOf(BuildingType.SMELTER, BuildingType.BEACON))
+        printBest(greedy)
+        UpgradePlanner().upgrade(greedy, Int.MAX_VALUE)
     }
 
-    private fun printBest(best: State) {
+    @JvmStatic
+    fun printBest(best: State) {
         println(best)
         var bCount = 1
         var json = StringBuilder(Main.START_JSON)

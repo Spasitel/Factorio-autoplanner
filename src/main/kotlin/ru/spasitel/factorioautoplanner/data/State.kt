@@ -17,7 +17,7 @@ data class State(
     }
 
     val freeSells: Lazy<HashSet<Sell>> = lazy {
-        var sells = HashSet<Sell>();
+        val sells = HashSet<Sell>()
         for (x in 0 until size.x - 2) {
             for (y in 0 until size.y - 2) {
                 sells.add(Sell.get(x, y))
@@ -68,8 +68,8 @@ data class State(
             .append(score.value)
             .append(" Buildings (s/b): ").append(smelter).append("/").append(beacon).append("\n")
 
-        for (x in 0 until size.x) {
-            for (y in 0 until size.y) {
+        for (y in 0 until size.y) {
+            for (x in 0 until size.x) {
 
                 val building = map[Sell.get(x, y)]
                 if (building == null) {
@@ -109,6 +109,17 @@ data class State(
 
         val newBuildings: MutableSet<Building> = HashSet(buildings)
         newBuildings.add(building)
+        return State(newBuildings, newMap, size)
+    }
+
+    fun removeBuilding(building: Building): State {
+        val newMap = map.toMutableMap()
+        for (sell in building.place.sells) {
+            newMap.remove(sell)
+        }
+
+        val newBuildings: MutableSet<Building> = HashSet(buildings)
+        newBuildings.remove(building)
         return State(newBuildings, newMap, size)
     }
 

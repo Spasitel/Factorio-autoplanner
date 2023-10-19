@@ -6,4 +6,10 @@ abstract class Building(open val place: Place) {
     abstract fun toJson(number: Int): String
     abstract val type: BuildingType
     abstract val symbol: Char
+
+    override fun toString(): String {
+        return type.toString() + "{" +
+                place.start +
+                '}'
+    }
 }

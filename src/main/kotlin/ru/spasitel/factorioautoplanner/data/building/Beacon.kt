@@ -15,6 +15,10 @@ data class Beacon(override val place: Place) : Building(place) {
         return String.format(Locale.US, BEACON, number, place.start.x + 1.5, place.start.y + 1.5)
     }
 
+    override fun toString(): String {
+        return super.toString()
+    }
+
     companion object {
         private const val BEACON =
             "{\"entity_number\":%d,\"name\":\"beacon\",\"position\":{\"x\":%.1f,\"y\":%.1f},\"items\":{\"speed-module-3\":2}},"

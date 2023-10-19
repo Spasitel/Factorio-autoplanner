@@ -11,4 +11,8 @@ data class EmptySpace(override val place: Place) : Building(place) {
         get() = BuildingType.EMPTY
     override val symbol: Char
         get() = 'x'
+
+    override fun toString(): String {
+        return super.toString()
+    }
 }

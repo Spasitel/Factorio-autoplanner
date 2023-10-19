@@ -9,7 +9,7 @@ import ru.spasitel.factorioautoplanner.data.building.BuildingType
 import ru.spasitel.factorioautoplanner.data.building.Chest
 import ru.spasitel.factorioautoplanner.data.building.Inserter
 
-class Planner {
+class GreedyPlanner {
 
 
     fun greedy(state: State, types: List<BuildingType>): State {
@@ -27,9 +27,7 @@ class Planner {
         var bestScore = 0.0
         for (type in types) {
             val newStates: Set<State> =
-                if (type == BuildingType.BEACON)
-                    generateBeaconStates(state, forBuild)
-                else generateStates(state, forBuild, type)
+                generateNewStates(type, state, forBuild)
 
 
             for (newState in newStates) {
@@ -40,6 +38,16 @@ class Planner {
             }
         }
         return bestState
+    }
+
+    fun generateNewStates(
+        type: BuildingType,
+        state: State,
+        forBuild: Sell
+    ): Set<State> {
+        return if (type == BuildingType.BEACON)
+            generateBeaconStates(state, forBuild)
+        else generateStates(state, forBuild, type)
     }
 
     private fun generateStates(state: State, forBuild: Sell, type: BuildingType): Set<State> {

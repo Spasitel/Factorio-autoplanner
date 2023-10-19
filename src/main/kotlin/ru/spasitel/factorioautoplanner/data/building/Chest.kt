@@ -21,6 +21,10 @@ data class Chest(override val place: Place, private val provider: Boolean) : Bui
     override val symbol: Char
         get() = if (provider) 'p' else 'r'
 
+    override fun toString(): String {
+        return super.toString()
+    }
+
     companion object {
         const val PROVIDER_CHEST =
             "{\"entity_number\":%d,\"name\":\"logistic-chest-passive-provider\",\"position\":{\"x\":%.1f,\"y\":%.1f}},"
