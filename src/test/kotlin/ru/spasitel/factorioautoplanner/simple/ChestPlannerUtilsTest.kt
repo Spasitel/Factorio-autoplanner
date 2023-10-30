@@ -9,7 +9,7 @@ import ru.spasitel.factorioautoplanner.simple.building.Smelter
 internal class ChestPlannerUtilsTest {
     @Test
     fun testMandatory() {
-        var st: State? = State(HashSet(), 0.0, 0, Array(Main.SIZE) { arrayOfNulls(Main.SIZE) })
+        var st: State? = State(HashSet(), 0.0, 0, Array(SimpleMain.SIZE) { arrayOfNulls(SimpleMain.SIZE) })
         st = st!!.addBuilding(Beacon(0, 4))
         st = st!!.addBuilding(Smelter(0, 7))
         st = st!!.addBuilding(Smelter(0, 10))

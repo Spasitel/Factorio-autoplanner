@@ -6,7 +6,7 @@ import ru.spasitel.factorioautoplanner.simple.building.Type
 
 class State(var buildings: Set<Building>, var score: Double, var area: Int, var map: Array<Array<Building?>>) {
     private fun checkState() {
-        if (Main.debug) {
+        if (SimpleMain.debug) {
             var checked = 0
             for (b in buildings) {
                 for (x in b.x until b.x + b.size) for (y in b.y until b.y + b.size) {
@@ -14,7 +14,7 @@ class State(var buildings: Set<Building>, var score: Double, var area: Int, var 
                     checked++
                 }
             }
-            for (x in 0 until Main.SIZE) for (y in 0 until Main.SIZE) if (map!![x]!![y] != null) checked--
+            for (x in 0 until SimpleMain.SIZE) for (y in 0 until SimpleMain.SIZE) if (map!![x]!![y] != null) checked--
             if (checked != 0) throw RuntimeException()
         }
     }
@@ -28,14 +28,14 @@ class State(var buildings: Set<Building>, var score: Double, var area: Int, var 
         str.append("Score: ").append(score).append(" Area: ").append(area).append(" Efficiency: ").append(score / area)
             .append(" Buildings (s/b): ").append(smelter).append("/").append(buildings.size - smelter).append("\n")
         val view = Array(18) { CharArray(18) }
-        for (i in 0 until Main.SIZE) for (k in 0 until Main.SIZE) view[i][k] = '.'
+        for (i in 0 until SimpleMain.SIZE) for (k in 0 until SimpleMain.SIZE) view[i][k] = '.'
         for (b in buildings) {
             val ch = b.symbol
             for (i in 0 until b.size) for (k in 0 until b.size) view[b.x + i][b.y + k] =
                 if (i == 0 && k == 0) ch.uppercaseChar() else ch
         }
-        for (i in 0 until Main.SIZE) {
-            for (k in 0 until Main.SIZE) {
+        for (i in 0 until SimpleMain.SIZE) {
+            for (k in 0 until SimpleMain.SIZE) {
                 str.append(view[k][i])
             }
             str.append("\n")
@@ -51,7 +51,7 @@ class State(var buildings: Set<Building>, var score: Double, var area: Int, var 
     }
 
     fun addBuilding(building: Building): State? {
-        val newMap = Main.copyOf(map)
+        val newMap = SimpleMain.copyOf(map)
 
         // Проверить что не пересекается
         for (x in building.x until building.x + building.size) {
@@ -67,7 +67,7 @@ class State(var buildings: Set<Building>, var score: Double, var area: Int, var 
 
     fun replaceSmelter(smelter: Smelter): State? {
         val old = map[smelter.x]!![smelter.y] as Smelter
-        val newMap = Main.copyOf(map)
+        val newMap = SimpleMain.copyOf(map)
         for (x in smelter.x until smelter.x + smelter.size) {
             for (y in smelter.y until smelter.y + smelter.size) {
                 if (map[x]?.get(y) !== old) return null

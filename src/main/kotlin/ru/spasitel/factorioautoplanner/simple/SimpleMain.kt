@@ -6,7 +6,7 @@ import java.util.*
 import java.util.function.Consumer
 import kotlin.math.abs
 
-object Main {
+object SimpleMain {
     const val SIZE = 18
     const val LIMIT: Long = 4000000
     const val START_JSON =

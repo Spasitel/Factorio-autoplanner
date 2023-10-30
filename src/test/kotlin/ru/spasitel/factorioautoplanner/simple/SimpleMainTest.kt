@@ -2,11 +2,11 @@ package ru.spasitel.factorioautoplanner.simple
 
 import org.junit.jupiter.api.Assertions
 import org.junit.jupiter.api.Test
-import ru.spasitel.factorioautoplanner.simple.Main.isInteract
+import ru.spasitel.factorioautoplanner.simple.SimpleMain.isInteract
 import ru.spasitel.factorioautoplanner.simple.building.Beacon
 import ru.spasitel.factorioautoplanner.simple.building.Smelter
 
-internal class MainTest {
+internal class SimpleMainTest {
     @Test
     fun intersectTest() {
         Assertions.assertTrue(

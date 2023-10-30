@@ -13,12 +13,12 @@ class UpgradePlannerTest {
     @Test
     fun findNextToDelete() {
 
-        var state = State(emptySet(), emptyMap(), Sell.get(18, 18))
-        val building1 = Utils.getBuilding(Sell.get(1, 0), BuildingType.SMELTER)
-        val building2 = Utils.getBuilding(Sell.get(3, 6), BuildingType.SMELTER)
-        val building3 = Utils.getBuilding(Sell.get(4, 3), BuildingType.SMELTER)
-        val building4 = Utils.getBuilding(Sell.get(7, 2), BuildingType.SMELTER)
-        val building5 = Utils.getBuilding(Sell.get(7, 6), BuildingType.SMELTER)
+        var state = State(emptySet(), emptyMap(), Sell(18, 18))
+        val building1 = Utils.getBuilding(Sell(1, 0), BuildingType.SMELTER)
+        val building2 = Utils.getBuilding(Sell(3, 6), BuildingType.SMELTER)
+        val building3 = Utils.getBuilding(Sell(4, 3), BuildingType.SMELTER)
+        val building4 = Utils.getBuilding(Sell(7, 2), BuildingType.SMELTER)
+        val building5 = Utils.getBuilding(Sell(7, 6), BuildingType.SMELTER)
         state =
             state.addBuilding(building2)!!.addBuilding(building1)!!.addBuilding(building3)!!.addBuilding(building4)!!
                 .addBuilding(building5)!!

@@ -9,7 +9,7 @@ object Utils {
         sells.add(start)
         for (x in 0 until size) {
             for (y in 0 until size) {
-                sells.add(Sell.get(start.x + x, start.y + y))
+                sells.add(Sell(start.x + x, start.y + y))
             }
         }
         return sells
@@ -38,8 +38,8 @@ object Utils {
         for (position in InsertersPlaces.values()) {
             sells.add(
                 Triple(
-                    Sell.get(building.place.start.x + position.iX, building.place.start.y + position.iY),
-                    Sell.get(building.place.start.x + position.cX, building.place.start.y + position.cY),
+                    Sell(building.place.start.x + position.iX, building.place.start.y + position.iY),
+                    Sell(building.place.start.x + position.cX, building.place.start.y + position.cY),
                     position.direction
                 )
             )

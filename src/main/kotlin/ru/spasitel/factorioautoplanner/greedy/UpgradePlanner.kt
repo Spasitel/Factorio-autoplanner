@@ -48,7 +48,7 @@ class UpgradePlanner {
                     best = newBest
                     lastDelete = emptyList()
                     size = 0
-                    Main.printBest(best)
+                    GreedyMain.printBest(best)
                     break
                 } else if (newBest.score.value < best.score.value - DELTA) {
                     throw IllegalStateException("Score decreased")
@@ -120,8 +120,8 @@ class UpgradePlanner {
         val start = building.place.start
         val directionX = if (building.alongX()) 1 else 0
         val directionY = if (building.alongX()) 0 else 1
-        best.map[Sell.get(start.x + directionX, start.y + directionY)] ?: return true
-        best.map[Sell.get(start.x - directionX, start.y - directionY)] ?: return true
+        best.map[Sell(start.x + directionX, start.y + directionY)] ?: return true
+        best.map[Sell(start.x - directionX, start.y - directionY)] ?: return true
 
         return false
     }
@@ -129,7 +129,7 @@ class UpgradePlanner {
     fun findNextToDelete(state: State, deleted: List<Building>): List<Building>? {
         // find next building to delete
         var size = 1.coerceAtLeast(deleted.size)
-        var start = if (deleted.isEmpty()) Sell.get(0, 0) else deleted.last().place.start
+        var start = if (deleted.isEmpty()) Sell(0, 0) else deleted.last().place.start
         val current = deleted.toMutableList()
         if (current.isNotEmpty()) current.removeLast()
         var sizedUp = false
@@ -141,7 +141,7 @@ class UpgradePlanner {
                     start = last.place.start
                 } else {
                     size++
-                    start = Sell.get(0, 0)
+                    start = Sell(0, 0)
                     if (sizedUp) return null
                     sizedUp = true
                 }
@@ -163,7 +163,7 @@ class UpgradePlanner {
             val maxY =
                 if (current.isEmpty()) state.size.y else state.size.y.coerceAtMost(current.last().place.start.y + distance)
             for (y in minY..maxY) {
-                val sell = Sell.get(x, y)
+                val sell = Sell(x, y)
                 val building = state.map[sell]
                 if (building != null && building.place.start == sell && building.type in TYPES) {
                     return building

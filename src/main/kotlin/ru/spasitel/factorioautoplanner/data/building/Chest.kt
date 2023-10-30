@@ -28,7 +28,10 @@ data class Chest(override val place: Place, private val provider: Boolean) : Bui
     companion object {
         const val PROVIDER_CHEST =
             "{\"entity_number\":%d,\"name\":\"logistic-chest-passive-provider\",\"position\":{\"x\":%.1f,\"y\":%.1f}},"
+        private const val IRON_PLATE = "iron-plate"
+        private const val IRON_ORE = "iron-ore"
+        private const val COPPER_ORE = "copper-ore"
         const val REQUEST_CHEST =
-            "{\"entity_number\":%d,\"name\":\"logistic-chest-requester\",\"position\":{\"x\":%.1f,\"y\":%.1f},\"request_filters\":[{\"index\":1,\"name\":\"iron-plate\",\"count\":300}]},"
+            "{\"entity_number\":%d,\"name\":\"logistic-chest-requester\",\"position\":{\"x\":%.1f,\"y\":%.1f},\"request_filters\":[{\"index\":1,\"name\":\"$COPPER_ORE\",\"count\":300}]},"
     }
 }

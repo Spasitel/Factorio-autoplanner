@@ -20,13 +20,16 @@ data class State(
         val sells = HashSet<Sell>()
         for (x in 0 until size.x - 2) {
             for (y in 0 until size.y - 2) {
-                sells.add(Sell.get(x, y))
+                sells.add(Sell(x, y))
             }
         }
         buildings.forEach {
-            it.place.sells.forEach { sell ->
-                sells.removeAll(Utils.sellsForBuilding(Sell.get(sell.x - 2, sell.y - 2), BuildingType.BEACON.size))
-            }
+            sells.removeAll(
+                Utils.sellsForBuilding(
+                    Sell(it.place.start.x - 2, it.place.start.y - 2),
+                    BuildingType.BEACON.size + it.type.size - 1
+                )
+            )
         }
         sells
     }
@@ -71,7 +74,7 @@ data class State(
         for (y in 0 until size.y) {
             for (x in 0 until size.x) {
 
-                val building = map[Sell.get(x, y)]
+                val building = map[Sell(x, y)]
                 if (building == null) {
                     str.append('.')
                 } else {

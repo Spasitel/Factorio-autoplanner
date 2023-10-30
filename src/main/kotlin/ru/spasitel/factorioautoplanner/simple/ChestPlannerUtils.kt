@@ -26,7 +26,7 @@ object ChestPlannerUtils {
 
     private fun addArbitraryChests(state: State): State {
         //0 пусто, 1 сундук, 2 - инсетер, 10 - конфликт
-        val chestMap = Array(Main.SIZE) { IntArray(Main.SIZE) }
+        val chestMap = Array(SimpleMain.SIZE) { IntArray(SimpleMain.SIZE) }
         var last: Building? = null
         for (b in state.buildings) {
             if (last == null ||
@@ -40,13 +40,13 @@ object ChestPlannerUtils {
             ) continue
             Arrays.stream(InsertersPlaces.values()).forEach { ip: InsertersPlaces ->
                 val cx = ip.cX + b.x
-                if (cx < 0 || cx >= Main.SIZE) return@forEach
+                if (cx < 0 || cx >= SimpleMain.SIZE) return@forEach
                 val cy = ip.cY + b.y
-                if (cy < 0 || cy >= Main.SIZE) return@forEach
+                if (cy < 0 || cy >= SimpleMain.SIZE) return@forEach
                 val ix = ip.iX + b.x
-                if (ix < 0 || ix >= Main.SIZE) return@forEach
+                if (ix < 0 || ix >= SimpleMain.SIZE) return@forEach
                 val iy = ip.iY + b.y
-                if (iy < 0 || iy >= Main.SIZE) return@forEach
+                if (iy < 0 || iy >= SimpleMain.SIZE) return@forEach
                 if (state.map[ix][iy] != null ||
                     state.map[cx][cy] != null &&
                     state.map[cx][cy]?.type != Type.PROVIDER_CHEST
@@ -60,10 +60,10 @@ object ChestPlannerUtils {
                 }
             }
         }
-        for (y in 0 until Main.SIZE - 2) {
+        for (y in 0 until SimpleMain.SIZE - 2) {
             val startX = if (y > last!!.y) last.x else (last.x) + 1
             var possible: Smelter? = null
-            for (x in startX until Main.SIZE - 2) {
+            for (x in startX until SimpleMain.SIZE - 2) {
                 val s = Smelter(x, y)
                 if (state.addBuilding(s) != null) {
                     possible = s
@@ -76,27 +76,27 @@ object ChestPlannerUtils {
                         if (chestMap[possible.x - 2][py] > 1) chestMap[possible.x - 2][py] =
                             3 else chestMap[possible.x - 2][py] = 1
                     }
-                    for (px in 0.coerceAtLeast(possible.x - 1) until Main.SIZE) chestMap[px][py] = 3
+                    for (px in 0.coerceAtLeast(possible.x - 1) until SimpleMain.SIZE) chestMap[px][py] = 3
                 }
                 if (possible.y > 1) {
                     val py = possible.y - 2
-                    for (px in possible.x until Main.SIZE) {
+                    for (px in possible.x until SimpleMain.SIZE) {
                         if (chestMap[px][py] > 1) chestMap[px][py] = 3 else chestMap[px][py] = 1
                     }
                 }
-                if (possible.y < Main.SIZE - 5) {
+                if (possible.y < SimpleMain.SIZE - 5) {
                     val py = possible.y + 5
-                    for (px in possible.x until Main.SIZE) {
+                    for (px in possible.x until SimpleMain.SIZE) {
                         if (chestMap[px][py] > 1) chestMap[px][py] = 3 else chestMap[px][py] = 1
                     }
                 }
-                if (possible.y < Main.SIZE - 4) {
+                if (possible.y < SimpleMain.SIZE - 4) {
                     val py = possible.y + 4
-                    for (px in possible.x until Main.SIZE) chestMap[px][py] = 3
+                    for (px in possible.x until SimpleMain.SIZE) chestMap[px][py] = 3
                 }
                 if (possible.y > 0) {
                     val py = possible.y - 1
-                    for (px in possible.x until Main.SIZE) chestMap[px][py] = 3
+                    for (px in possible.x until SimpleMain.SIZE) chestMap[px][py] = 3
                 }
             }
         }
@@ -108,13 +108,13 @@ object ChestPlannerUtils {
             val ips: MutableList<InsertersPlaces> = ArrayList()
             for (ip in InsertersPlaces.values()) {
                 val cx = ip.cX + b.x
-                if (cx < 0 || cx >= Main.SIZE) continue
+                if (cx < 0 || cx >= SimpleMain.SIZE) continue
                 val cy = ip.cY + b.y
-                if (cy < 0 || cy >= Main.SIZE) continue
+                if (cy < 0 || cy >= SimpleMain.SIZE) continue
                 val ix = ip.iX + b.x
-                if (ix < 0 || ix >= Main.SIZE) continue
+                if (ix < 0 || ix >= SimpleMain.SIZE) continue
                 val iy = ip.iY + b.y
-                if (iy < 0 || iy >= Main.SIZE) continue
+                if (iy < 0 || iy >= SimpleMain.SIZE) continue
                 if (current.map[ix][iy] != null) continue
                 if (current.map[cx][cy] != null)
                     if (current.map[cx][cy]!!.type != Type.PROVIDER_CHEST) {
@@ -142,13 +142,13 @@ object ChestPlannerUtils {
                 val insertersPlaces: MutableList<InsertersPlaces> = ArrayList()
                 for (places in InsertersPlaces.values()) {
                     val cx = places.cX + s.x
-                    if (cx < 0 || cx >= Main.SIZE) continue
+                    if (cx < 0 || cx >= SimpleMain.SIZE) continue
                     val cy = places.cY + s.y
-                    if (cy < 0 || cy >= Main.SIZE) continue
+                    if (cy < 0 || cy >= SimpleMain.SIZE) continue
                     val ix = places.iX + s.x
-                    if (ix < 0 || ix >= Main.SIZE) continue
+                    if (ix < 0 || ix >= SimpleMain.SIZE) continue
                     val iy = places.iY + s.y
-                    if (iy < 0 || iy >= Main.SIZE) continue
+                    if (iy < 0 || iy >= SimpleMain.SIZE) continue
                     if ((state.map[cx][cy] == null
                                 || state.map[cx][cy]!!.type == Type.PROVIDER_CHEST)
                         && state.map[ix][iy] == null

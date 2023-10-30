@@ -54,7 +54,7 @@ class GreedyPlanner {
         val newStates = HashSet<State>()
         for (x in -4 until 5) {
             for (y in -4 until 5) {
-                val start = Sell.get(forBuild.x + x, forBuild.y + y)
+                val start = Sell(forBuild.x + x, forBuild.y + y)
                 // build and add to newStates
                 val building = Utils.getBuilding(start, type)
                 val withoutChests = state.addBuilding(building) ?: continue
@@ -103,7 +103,7 @@ class GreedyPlanner {
         val newStates = HashSet<State>()
         for (x in -2 until 3) {
             for (y in -2 until 3) {
-                val start = Sell.get(forBuild.x + x, forBuild.y + y)
+                val start = Sell(forBuild.x + x, forBuild.y + y)
                 // build and add to newStates
                 val building = Utils.getBuilding(start, BuildingType.BEACON)
                 state.addBuilding(building)?.let { newStates.add(it) }
