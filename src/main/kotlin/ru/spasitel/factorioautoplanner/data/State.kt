@@ -38,7 +38,7 @@ data class State(
         var score = 0.0
         for (b in buildings) {
             if (b.type == BuildingType.SMELTER) {
-                score += 0.8
+                score += 4
             }
             if (b.type == BuildingType.BEACON) {
                 for (affected in buildings) {
@@ -47,7 +47,7 @@ data class State(
                     if (abs(b.place.start.x - affected.place.start.x) < 6
                         && abs(b.place.start.y - affected.place.start.y) < 6
                     ) {
-                        score += 0.5
+                        score += 1
                     }
                 }
             }

@@ -199,6 +199,7 @@
   {
     "name": "basic-oil-processing",
     "energy_required": 5,
+    "category": "oil-processing",
     "results": [
       {
         "name": "petroleum-gas",
@@ -215,6 +216,7 @@
   {
     "name": "advanced-oil-processing",
     "energy_required": 5,
+    "category": "oil-processing",
     "results": [
       {
         "name": "heavy-oil",
@@ -243,6 +245,7 @@
   {
     "name": "coal-liquefaction",
     "energy_required": 5,
+    "category": "oil-processing",
     "results": [
       {
         "name": "heavy-oil",
@@ -275,6 +278,7 @@
   {
     "name": "heavy-oil-cracking",
     "energy_required": 2,
+    "category": "chemistry",
     "results": [
       {
         "name": "light-oil",
@@ -295,6 +299,7 @@
   {
     "name": "light-oil-cracking",
     "energy_required": 2,
+    "category": "chemistry",
     "results": [
       {
         "name": "petroleum-gas",
@@ -315,6 +320,7 @@
   {
     "name": "sulfuric-acid",
     "energy_required": 1,
+    "category": "chemistry",
     "results": [
       {
         "name": "sulfuric-acid",
@@ -339,6 +345,7 @@
   {
     "name": "plastic-bar",
     "energy_required": 1,
+    "category": "chemistry",
     "results": [
       {
         "name": "plastic-bar",
@@ -359,6 +366,7 @@
   {
     "name": "solid-fuel-from-light-oil",
     "energy_required": 2,
+    "category": "chemistry",
     "results": [
       {
         "name": "solid-fuel",
@@ -375,6 +383,7 @@
   {
     "name": "solid-fuel-from-petroleum-gas",
     "energy_required": 2,
+    "category": "chemistry",
     "results": [
       {
         "name": "solid-fuel",
@@ -391,6 +400,7 @@
   {
     "name": "solid-fuel-from-heavy-oil",
     "energy_required": 2,
+    "category": "chemistry",
     "results": [
       {
         "name": "solid-fuel",
@@ -407,6 +417,7 @@
   {
     "name": "sulfur",
     "energy_required": 1,
+    "category": "chemistry",
     "results": [
       {
         "name": "sulfur",
@@ -427,6 +438,7 @@
   {
     "name": "lubricant",
     "energy_required": 1,
+    "category": "chemistry",
     "results": [
       {
         "name": "lubricant",
@@ -443,6 +455,7 @@
   {
     "name": "empty-barrel",
     "energy_required": 1,
+    "category": "crafting",
     "results": [
       {
         "name": "empty-barrel",
@@ -1402,6 +1415,7 @@
   {
     "name": "engine-unit",
     "energy_required": 10,
+    "category": "advanced-crafting",
     "result": "engine-unit",
     "ingredients": [
       {
@@ -1637,6 +1651,7 @@
   {
     "name": "concrete",
     "energy_required": 10,
+    "category": "crafting-with-fluid",
     "result_count": 10,
     "result": "concrete",
     "ingredients": [
@@ -1657,6 +1672,7 @@
   {
     "name": "hazard-concrete",
     "energy_required": 0.25,
+    "category": "crafting",
     "result_count": 10,
     "result": "hazard-concrete",
     "ingredients": [
@@ -1669,6 +1685,7 @@
   {
     "name": "refined-concrete",
     "energy_required": 15,
+    "category": "crafting-with-fluid",
     "result_count": 10,
     "result": "refined-concrete",
     "ingredients": [
@@ -1693,6 +1710,7 @@
   {
     "name": "refined-hazard-concrete",
     "energy_required": 0.25,
+    "category": "crafting",
     "result_count": 10,
     "result": "refined-hazard-concrete",
     "ingredients": [
@@ -1705,6 +1723,7 @@
   {
     "name": "landfill",
     "energy_required": 0.5,
+    "category": "crafting",
     "result_count": 1,
     "result": "landfill",
     "ingredients": [
@@ -1862,6 +1881,7 @@
   {
     "name": "copper-plate",
     "energy_required": 3.2,
+    "category": "smelting",
     "result": "copper-plate",
     "ingredients": [
       {
@@ -1873,6 +1893,7 @@
   {
     "name": "iron-plate",
     "energy_required": 3.2,
+    "category": "smelting",
     "result": "iron-plate",
     "ingredients": [
       {
@@ -1884,6 +1905,7 @@
   {
     "name": "stone-brick",
     "energy_required": 3.2,
+    "category": "smelting",
     "result": "stone-brick",
     "ingredients": [
       {
@@ -1895,6 +1917,7 @@
   {
     "name": "steel-plate",
     "energy_required": 0.5,
+    "category": "smelting",
     "result": "steel-plate",
     "ingredients": [
       {
@@ -2322,6 +2345,7 @@
   {
     "name": "flamethrower-ammo",
     "energy_required": 6,
+    "category": "chemistry",
     "result": "flamethrower-ammo",
     "ingredients": [
       {
@@ -2337,6 +2361,7 @@
   {
     "name": "express-transport-belt",
     "energy_required": 0.5,
+    "category": "crafting-with-fluid",
     "result": "express-transport-belt",
     "ingredients": [
       {
@@ -2712,6 +2737,7 @@
   {
     "name": "express-underground-belt",
     "energy_required": 2,
+    "category": "crafting-with-fluid",
     "result_count": 2,
     "result": "express-underground-belt",
     "ingredients": [
@@ -2762,6 +2788,7 @@
   {
     "name": "express-splitter",
     "energy_required": 2,
+    "category": "crafting-with-fluid",
     "result": "express-splitter",
     "ingredients": [
       {
@@ -2804,6 +2831,7 @@
   {
     "name": "processing-unit",
     "energy_required": 0.5,
+    "category": "crafting-with-fluid",
     "result": "processing-unit",
     "ingredients": [
       {
@@ -3120,6 +3148,7 @@
   {
     "name": "electric-engine-unit",
     "energy_required": 10,
+    "category": "crafting-with-fluid",
     "result": "electric-engine-unit",
     "ingredients": [
       {
@@ -3162,6 +3191,7 @@
   {
     "name": "explosives",
     "energy_required": 0.5,
+    "category": "chemistry",
     "result_count": 2,
     "result": "explosives",
     "ingredients": [
@@ -3182,6 +3212,7 @@
   {
     "name": "battery",
     "energy_required": 0.5,
+    "category": "chemistry",
     "result": "battery",
     "ingredients": [
       {
@@ -3258,6 +3289,7 @@
   {
     "name": "low-density-structure",
     "energy_required": 0.5,
+    "category": "crafting",
     "result": "low-density-structure",
     "ingredients": [
       {
@@ -3277,6 +3309,7 @@
   {
     "name": "rocket-fuel",
     "energy_required": 30,
+    "category": "crafting-with-fluid",
     "result": "rocket-fuel",
     "ingredients": [
       {
@@ -3292,6 +3325,7 @@
   {
     "name": "rocket-control-unit",
     "energy_required": 30,
+    "category": "crafting",
     "result": "rocket-control-unit",
     "ingredients": [
       {
@@ -3307,25 +3341,32 @@
   {
     "name": "rocket-part",
     "energy_required": 3,
-    "result": "rocket-part",
+    "category": "rocket-building",
+    "result": "space-science-pack",
+    "result_count": 714,
     "ingredients": [
       {
         "name": "rocket-control-unit",
-        "amount": 10
+        "amount": 714
       },
       {
         "name": "low-density-structure",
-        "amount": 10
+        "amount": 714
       },
       {
         "name": "rocket-fuel",
-        "amount": 10
+        "amount": 714
+      },
+      {
+        "name": "satellite",
+        "amount": 1
       }
     ]
   },
   {
     "name": "satellite",
     "energy_required": 5,
+    "category": "crafting",
     "result": "satellite",
     "ingredients": [
       {
@@ -3418,6 +3459,7 @@
   {
     "name": "uranium-processing",
     "energy_required": 12,
+    "category": "centrifuging",
     "results": [
       {
         "name": "uranium-235",
@@ -3438,6 +3480,7 @@
   {
     "name": "kovarex-enrichment-process",
     "energy_required": 60,
+    "category": "centrifuging",
     "results": [
       {
         "name": "uranium-235",
@@ -3462,6 +3505,7 @@
   {
     "name": "nuclear-fuel",
     "energy_required": 90,
+    "category": "centrifuging",
     "result": "nuclear-fuel",
     "ingredients": [
       {
@@ -3477,6 +3521,7 @@
   {
     "name": "nuclear-fuel-reprocessing",
     "energy_required": 60,
+    "category": "centrifuging",
     "results": [
       {
         "name": "uranium-238",

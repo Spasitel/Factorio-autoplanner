@@ -1,12 +1,15 @@
+package ru.spasitel.factorioautoplanner.data.auto
+
 class RecipesDTO : ArrayList<RecipesDTOItem>()
 
 data class RecipesDTOItem(
     val energy_required: Double,
     val ingredients: List<Ingredient>,
+    val category: String?,
     val name: String,
-    val result: String,
-    val result_count: Int,
-    val results: List<Result>
+    val result: String?,
+    val result_count: Int?,
+    val results: List<Result>?
 )
 
 data class Ingredient(

@@ -22,6 +22,7 @@ class UpgradePlanner {
 
         var size = 1
         var lastDelete: List<Building> = emptyList()
+        var prevDate = Date()
         while (attempts < attemptsLimit) {
             val deletedSet =
                 TreeSet { o1: State, o2: State ->
@@ -40,11 +41,14 @@ class UpgradePlanner {
                 deleted = findNextToDelete(best, deleted)
             }
             for (newState in deletedSet.descendingSet()) {
-                val sdf = SimpleDateFormat("dd/M/yyyy hh:mm:ss")
-                val currentDate = sdf.format(Date())
-                println("$currentDate == $attempts, size: $size, free sells: ${newState.freeSells.value.size}")
+                val date = Date()
+                if (date.time - prevDate.time > 60000) {
+                    printCurrentState(date, size, newState)
+                    prevDate = date
+                }
                 val newBest = findBestReplacements(newState)
                 if (newBest.score.value > best.score.value + DELTA) {
+                    printCurrentState(date, size, newState)
                     best = newBest
                     lastDelete = emptyList()
                     size = 0
@@ -57,6 +61,12 @@ class UpgradePlanner {
             size++
         }
         return best
+    }
+
+    private fun printCurrentState(date: Date, size: Int, newState: State) {
+        val sdf = SimpleDateFormat("dd/M/yyyy hh:mm:ss")
+        val currentDate = sdf.format(date)
+        println("$currentDate == $attempts, size: $size, free sells: ${newState.freeSells.value.size}")
     }
 
     private fun findBestReplacements(state: State): State {
