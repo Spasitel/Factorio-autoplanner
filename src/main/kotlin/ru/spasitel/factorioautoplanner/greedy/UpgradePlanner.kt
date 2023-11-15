@@ -2,6 +2,7 @@ package ru.spasitel.factorioautoplanner.greedy
 
 import ru.spasitel.factorioautoplanner.data.Sell
 import ru.spasitel.factorioautoplanner.data.State
+import ru.spasitel.factorioautoplanner.data.Utils
 import ru.spasitel.factorioautoplanner.data.building.Building
 import ru.spasitel.factorioautoplanner.data.building.BuildingType
 import ru.spasitel.factorioautoplanner.data.building.Inserter
@@ -52,7 +53,7 @@ class UpgradePlanner {
                     best = newBest
                     lastDelete = emptyList()
                     size = 0
-                    GreedyMain.printBest(best)
+                    Utils.printBest(best)
                     break
                 } else if (newBest.score.value < best.score.value - DELTA) {
                     throw IllegalStateException("Score decreased")

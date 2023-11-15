@@ -1,5 +1,6 @@
 package ru.spasitel.factorioautoplanner.simple
 
+import ru.spasitel.factorioautoplanner.data.Utils
 import ru.spasitel.factorioautoplanner.formatter.Formatter
 import ru.spasitel.factorioautoplanner.simple.building.*
 import java.util.*
@@ -9,9 +10,7 @@ import kotlin.math.abs
 object SimpleMain {
     const val SIZE = 18
     const val LIMIT: Long = 4000000
-    const val START_JSON =
-        "{\"blueprint\":{\"icons\":[{\"signal\":{\"type\":\"item\",\"name\":\"electric-furnace\"},\"index\":1}],\"entities\":["
-    const val END_JSON = "],\"item\":\"blueprint\",\"version\":281479273775104}}"
+
     var debug = false
     private var max = 0.0
     private var best: State? = null
@@ -76,14 +75,14 @@ object SimpleMain {
     private fun printBest() {
         println(best)
         var bCount = 1
-        var json = StringBuilder(START_JSON)
+        var json = StringBuilder(Utils.START_JSON)
         for (b in best!!.buildings) {
             if (b.type == Type.EMPTY) continue
             json.append(b.toJson(bCount))
             bCount++
         }
         json = StringBuilder(json.substring(0, json.length - 1))
-        json.append(END_JSON)
+        json.append(Utils.END_JSON)
         println(Formatter.encode(json.toString()))
     }
 
