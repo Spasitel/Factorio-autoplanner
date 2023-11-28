@@ -1,4 +1,4 @@
-package ru.spasitel.factorioautoplanner.greedy
+package ru.spasitel.factorioautoplanner.planner
 
 import com.google.gson.Gson
 import ru.spasitel.factorioautoplanner.data.ProcessedItem
@@ -6,7 +6,7 @@ import ru.spasitel.factorioautoplanner.data.auto.RecipesDTO
 import ru.spasitel.factorioautoplanner.data.auto.RecipesDTOItem
 import ru.spasitel.factorioautoplanner.data.building.BuildingType
 
-class GlobalPlanner {
+class TechnologyTreePlanner {
 
     fun readRecipesFromFile(): RecipesDTO {
         val gson = Gson()
@@ -125,22 +125,35 @@ class GlobalPlanner {
 
     companion object {
         val EMPTY_RECIPE = RecipesDTOItem(0.0, emptyList(), null, "empty", null, null, null)
+        private val base = setOf(
+            "iron-plate",
+            "copper-plate",
+            "steel-plate",
+            "coal",
+            "stone",
+            "water",
+            "crude-oil",
+            "heavy-oil",
+            "light-oil",
+            "petroleum-gas"
+        )
 
-        @JvmStatic
-        fun main(args: Array<String>) {
-            val recipes = GlobalPlanner().readRecipesFromFile()
-            val base = setOf(
-                "iron-plate",
-                "copper-plate",
-                "steel-plate",
-                "coal",
-                "stone",
-                "water",
-                "crude-oil",
-                "heavy-oil",
-                "light-oil",
-                "petroleum-gas"
+        fun scienceRoundTree(): Map<String, ProcessedItem> {
+            val recipes = TechnologyTreePlanner().readRecipesFromFile()
+            val toBuildMilitary = mapOf(
+                "automation-science-pack" to 100.0,
+                "logistic-science-pack" to 100.0,
+                "military-science-pack" to 50.0,
+                "chemical-science-pack" to 100.0,
+                "production-science-pack" to 50.0,
+                "utility-science-pack" to 100.0,
+                "space-science-pack" to 100.0
             )
+            return TechnologyTreePlanner().createRecipeTree(base, toBuildMilitary, recipes)
+        }
+
+        fun scienceTree(): Map<String, ProcessedItem> {
+            val recipes = TechnologyTreePlanner().readRecipesFromFile()
             val toBuildMilitary = mapOf(
                 "automation-science-pack" to 100.0,
                 "logistic-science-pack" to 100.0,
@@ -150,7 +163,7 @@ class GlobalPlanner {
                 "utility-science-pack" to 100.0,
                 "space-science-pack" to 100.0
             )
-            val treeMilitary = GlobalPlanner().createRecipeTree(base, toBuildMilitary, recipes)
+            val treeMilitary = TechnologyTreePlanner().createRecipeTree(base, toBuildMilitary, recipes)
             val toBuildProduction = mapOf(
                 "automation-science-pack" to 100.0,
                 "logistic-science-pack" to 100.0,
@@ -160,7 +173,7 @@ class GlobalPlanner {
                 "utility-science-pack" to 100.0,
                 "space-science-pack" to 100.0
             )
-            val treeProduction = GlobalPlanner().createRecipeTree(base, toBuildProduction, recipes)
+            val treeProduction = TechnologyTreePlanner().createRecipeTree(base, toBuildProduction, recipes)
             val result = HashMap<String, ProcessedItem>()
             treeProduction.keys.plus(treeMilitary.keys).forEach {
                 if (it !in treeProduction) {
@@ -175,7 +188,7 @@ class GlobalPlanner {
                     }
                 }
             }
-
+            return result
         }
 
         val productivity_module_possible_replace = setOf(

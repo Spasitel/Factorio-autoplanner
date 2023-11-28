@@ -10,9 +10,15 @@ data class Chest(override val place: Place, private val provider: Boolean) : Bui
             Locale.US,
             PROVIDER_CHEST,
             number,
-            place.start.x + 0.5,
-            place.start.y + 0.5
-        ) else String.format(Locale.US, REQUEST_CHEST, number, place.start.x + 0.5, place.start.y + 0.5)
+            place.start.x + type.size / 2.0,
+            place.start.y + type.size / 2.0
+        ) else String.format(
+            Locale.US,
+            REQUEST_CHEST,
+            number,
+            place.start.x + type.size / 2.0,
+            place.start.y + type.size / 2.0
+        )
     }
 
     override val type: BuildingType

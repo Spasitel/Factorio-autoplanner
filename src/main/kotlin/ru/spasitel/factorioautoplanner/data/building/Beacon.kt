@@ -12,7 +12,13 @@ data class Beacon(override val place: Place) : Building(place) {
         get() = 'b'
 
     override fun toJson(number: Int): String {
-        return String.format(Locale.US, BEACON, number, place.start.x + 1.5, place.start.y + 1.5)
+        return String.format(
+            Locale.US,
+            BEACON,
+            number,
+            place.start.x + type.size / 2.0,
+            place.start.y + type.size / 2.0
+        )
     }
 
     override fun toString(): String {

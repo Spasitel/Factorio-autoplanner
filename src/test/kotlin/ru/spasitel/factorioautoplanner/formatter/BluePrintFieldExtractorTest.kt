@@ -2,8 +2,8 @@ package ru.spasitel.factorioautoplanner.formatter
 
 import com.google.gson.Gson
 import org.junit.jupiter.api.Test
+import ru.spasitel.factorioautoplanner.data.Cell
 import ru.spasitel.factorioautoplanner.data.Place
-import ru.spasitel.factorioautoplanner.data.Sell
 import ru.spasitel.factorioautoplanner.data.State
 import ru.spasitel.factorioautoplanner.data.Utils
 import ru.spasitel.factorioautoplanner.data.auto.BlueprintDTO
@@ -13,9 +13,9 @@ import ru.spasitel.factorioautoplanner.data.building.Inserter
 class BluePrintFieldExtractorTest {
     @Test
     fun testRails() {
-        var state = State(emptySet(), emptyMap(), Sell(100, 20))
+        var state = State(emptySet(), emptyMap(), Cell(100, 20))
         for (i in 1..7 step 2) {
-            val start = Sell(i * 10, 11)
+            val start = Cell(i * 10, 11)
             state = state.addBuilding(Inserter(Place(setOf(start), start), i))!!
             state = state.addBuilding(Utils.getBuilding(start.up().up(), BuildingType.PROVIDER_CHEST))!!
             state = state.addBuilding(Utils.getBuilding(start.up().right(), BuildingType.PROVIDER_CHEST))!!

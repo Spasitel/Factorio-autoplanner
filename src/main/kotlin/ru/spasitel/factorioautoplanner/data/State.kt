@@ -7,31 +7,31 @@ import kotlin.math.abs
 
 data class State(
     var buildings: Set<Building>,
-    var map: Map<Sell, Building>,
-    var size: Sell
+    var map: Map<Cell, Building>,
+    var size: Cell
 ) {
 
     val area: Lazy<Int> = lazy {
 
-        (size.x - 2) * (size.y - 2) - freeSells.value.size
+        (size.x - 2) * (size.y - 2) - freeCells.value.size
     }
 
-    val freeSells: Lazy<HashSet<Sell>> = lazy {
-        val sells = HashSet<Sell>()
+    val freeCells: Lazy<HashSet<Cell>> = lazy {
+        val cells = HashSet<Cell>()
         for (x in 0 until size.x - 2) {
             for (y in 0 until size.y - 2) {
-                sells.add(Sell(x, y))
+                cells.add(Cell(x, y))
             }
         }
         buildings.forEach {
-            sells.removeAll(
-                Utils.sellsForBuilding(
-                    Sell(it.place.start.x - 2, it.place.start.y - 2),
+            cells.removeAll(
+                Utils.cellsForBuilding(
+                    Cell(it.place.start.x - 2, it.place.start.y - 2),
                     BuildingType.BEACON.size + it.type.size - 1
                 )
             )
         }
-        sells
+        cells
     }
 
     val production: Lazy<Double> = lazy {
@@ -74,7 +74,7 @@ data class State(
         for (y in 0 until size.y) {
             for (x in 0 until size.x) {
 
-                val building = map[Sell(x, y)]
+                val building = map[Cell(x, y)]
                 if (building == null) {
                     str.append('.')
                 } else {
@@ -94,20 +94,20 @@ data class State(
     }
 
     fun addBuilding(building: Building): State? {
-        if (building.place.sells.any { it.x >= size.x || it.y >= size.y }) {
+        if (building.place.cells.any { it.x >= size.x || it.y >= size.y }) {
             return null
         }
-        if (building.place.sells.any { it.x < 0 || it.y < 0 }) {
+        if (building.place.cells.any { it.x < 0 || it.y < 0 }) {
             return null
         }
 
-        if (building.place.sells.intersect(map.keys).isNotEmpty()) {
+        if (building.place.cells.intersect(map.keys).isNotEmpty()) {
             return null
         }
 
         val newMap = map.toMutableMap()
-        for (sell in building.place.sells) {
-            newMap[sell] = building
+        for (cell in building.place.cells) {
+            newMap[cell] = building
         }
 
         val newBuildings: MutableSet<Building> = HashSet(buildings)
@@ -117,8 +117,8 @@ data class State(
 
     fun removeBuilding(building: Building): State {
         val newMap = map.toMutableMap()
-        for (sell in building.place.sells) {
-            newMap.remove(sell)
+        for (cell in building.place.cells) {
+            newMap.remove(cell)
         }
 
         val newBuildings: MutableSet<Building> = HashSet(buildings)

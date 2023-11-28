@@ -6,7 +6,13 @@ import java.util.*
 
 data class Smelter(override val place: Place) : Building(place) {
     override fun toJson(number: Int): String {
-        return String.format(Locale.US, SMELTER, number, place.start.x + 1.5, place.start.y + 1.5)
+        return String.format(
+            Locale.US,
+            SMELTER,
+            number,
+            place.start.x + type.size / 2.0,
+            place.start.y + type.size / 2.0
+        )
     }
 
     override val type: BuildingType

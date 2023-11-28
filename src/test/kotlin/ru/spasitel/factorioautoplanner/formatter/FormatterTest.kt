@@ -74,7 +74,21 @@ internal class FormatterTest {
         println(encode(repl))
     }
 
+    @Test
+    fun testDirections() {
+        val decode = decode(refinery)!!
+        val mMineUserEntity = Gson().fromJson(decode, BlueprintDTO::class.java)
+        val normal = BluePrintFieldExtractor().normalizeBlueprint(mMineUserEntity)
+        println(normal)
+    }
     companion object {
+        const val pipes =
+            "0eNqd1u1ugyAUBuB7Ob+x4VPQW1mWxbakIZtoFJc1jfc+bZdFO8zB/RNDHg7wgt7g+DHYtnM+QHkDd2p8D+XLDXp38dXH/C5cWwsluGBrIOCrem71oemqi81C5d9hJOD82X5BycZXAtYHF5x9OPfG9c0P9dF2U4dfoXUTS6Bt+qlz4+eRJiDTTB8Ugev0yKiRBzWO5I/CcYXiikAVmuOKRBW+rEXEFYXPyOBKvm91NxSNKxJXDK4oXClwReAKo/sCs8UkpJclMHh8aZHA7Mwv32DkPmarGjzBNCF7DI8wTYgN0/GbKrZji6XWxQZn0jn1xBE4u86eHp14DF9kfKhb7NTqfE3K2P1IcZKvyBjCUGQe54dQKVPlHK9LbZN5jFyfgiw02aVrBn/GbmItkni5g19tk0haELWHl098DMz/C7LneuX8Lb9/9cvFTwKBT9v1jwkZJnXBtTbCCDFl6Bv6SZEU"
+        const val refinery =
+            "0eNq1lNuKgzAQQP9lnmPReEnqr5RlsTotAxoliWVF/PdNFJZlFdc++JbJTM4cQiYj3OseO03KQj4Cla0ykN9GMPRURe337NAh5EAWG2CgisZHLdWBxgcp1ANMDEhV+AV5NH0wQGXJEi6cORg+Vd/cUbuCbQKDrjXuUKt8RwcKBA8vKYPBLaNQXC+pa6KxpNmlqF6FKrEKPKTTbYnGkHo6jLc0nmE6dPmmrfoagxjyeJrYyoYftomSlU1Fzmcp4ie4xYfdQrnnlpzglhx343tu2Qlu6Y/bozA2IGVQW5f474mlq4vbgGfH4ZHcg2cbcPEGPPsD38DJN3DJniv3Qz2Pf/7rt2DwQm2WAhkl4sqFkLGM42yavgFTomiM"
+
+        const val chests =
+            "0eNqVkNEKwjAMRf8lz524zrnZXxGROcMMbG1p6nCM/rvtfBkiqG+5gZx7b2a49He0jrQHNQO1RjOo4wxMnW76tPOTRVBAHgcQoJshqd50xJ7arL0h+8w2zDRiZp0Z6YoOggDSV3yAyoP4l8beuKbDFUSGkwDUnjzhK98iprO+D5dop/JvLAHWcDw3OqWIyKySu00pYIpjvj3ITRlS0jeu/LnxJ4NyZVAkg9hiaa5WbxcwouPlTtb5rjrIqqqLuij2ITwB1MqKbw=="
         const val smelter =
             "0eNqVkttuhCAQht9lrrFRFG19lWazcXF2O4mCC2hqDO9e1NaeNE2vYMg/H/8cJrg0PXaGlINyApJaWSifJ7B0U1Uzv7mxQyiBHLbAQFXtHGGD0hmS0bU3qpIIngGpGl+hTPyJASpHjnBlLcF4Vn17QRMExxQGnbYhUav55wCLMi4eBIMxXPNw85794vGN1+gbWRd48gWti7rKWhow6oweqA7SPTzf8Pk+Pt3wpCwad8BJv3EY1GRCcYsk36FmR6YN3vtw/ulWLL+8q89XakLK2u6POXz6NlpF2sztlbqfJ83j2J92XIn/1ip+1srn6S+7Un5ZLQZDcLcKHpOseOJFWhQiiTPv3wDUrNG6"
         const val smelter2 =

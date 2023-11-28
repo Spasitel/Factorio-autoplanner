@@ -12,4 +12,5 @@ abstract class Building(open val place: Place) {
                 place.start +
                 '}'
     }
+
 }

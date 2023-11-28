@@ -9,22 +9,24 @@ object Utils {
     const val START_JSON =
         "{\"blueprint\":{\"icons\":[{\"signal\":{\"type\":\"item\",\"name\":\"electric-furnace\"},\"index\":1}],\"entities\":["
     const val END_JSON = "],\"item\":\"blueprint\",\"version\":281479273775104}}"
-    fun sellsForBuilding(start: Sell, size: Int): Set<Sell> {
-        val sells = HashSet<Sell>()
-        sells.add(start)
+    fun cellsForBuilding(start: Cell, size: Int): Set<Cell> {
+        val cells = HashSet<Cell>()
+        cells.add(start)
         for (x in 0 until size) {
             for (y in 0 until size) {
-                sells.add(Sell(start.x + x, start.y + y))
+                cells.add(Cell(start.x + x, start.y + y))
             }
         }
-        return sells
+        return cells
     }
 
     fun getBuilding(
-        start: Sell,
-        type: BuildingType
+        start: Cell,
+        type: BuildingType,
+        direction: Int? = null,
+        liquid: String? = null
     ): Building {
-        val place = Place(sellsForBuilding(start, type.size), start)
+        val place = Place(cellsForBuilding(start, type.size), start)
 
         return when (type) {
             BuildingType.BEACON -> Beacon(place)
@@ -35,24 +37,31 @@ object Utils {
             BuildingType.EMPTY2 -> EmptySpace(place, 2)
             BuildingType.EMPTY3 -> EmptySpace(place, 3)
             BuildingType.EMPTY4 -> EmptySpace(place, 4)
+            BuildingType.INSERTER -> Inserter(place, direction!!)
+            BuildingType.PUMP -> Pump(place, liquid!!, direction!!)
+            BuildingType.STORAGE_TANK -> StorageTank(place, liquid!!, direction!!)
+            BuildingType.OIL_REFINERY -> OilRefinery(place, direction!!)
+            BuildingType.PIPE -> Pipe(place, liquid!!)
+            BuildingType.UNDERGROUND_PIPE -> UndergroundPipe(place, liquid!!, direction!!)
+
 
             else -> throw IllegalArgumentException("Unknown building type")
         }
     }
 
 
-    fun chestsPositions(building: Building): Set<Triple<Sell, Sell, Int>> {
-        val sells = HashSet<Triple<Sell, Sell, Int>>()
+    fun chestsPositions(building: Building): Set<Triple<Cell, Cell, Int>> {
+        val cells = HashSet<Triple<Cell, Cell, Int>>()
         for (position in InsertersPlaces.values()) {
-            sells.add(
+            cells.add(
                 Triple(
-                    Sell(building.place.start.x + position.iX, building.place.start.y + position.iY),
-                    Sell(building.place.start.x + position.cX, building.place.start.y + position.cY),
+                    Cell(building.place.start.x + position.iX, building.place.start.y + position.iY),
+                    Cell(building.place.start.x + position.cX, building.place.start.y + position.cY),
                     position.direction
                 )
             )
         }
-        return sells
+        return cells
     }
 
 
@@ -71,11 +80,11 @@ object Utils {
         println(Formatter.encode(json.toString()))
     }
 
-    fun isBetween(x: Int, y: Int, chestField: Pair<Sell, Sell>): Boolean {
-        return x in chestField.first.x..chestField.second.x && y in chestField.first.y..chestField.second.y
+    fun isBetween(x: Int, y: Int, chestField: Pair<Cell, Cell>, shift: Int = 0): Boolean {
+        return x in chestField.first.x - shift..chestField.second.x + shift && y in chestField.first.y - shift..chestField.second.y + shift
     }
 
-    fun isBetween(sell: Sell, start: Sell, end: Sell): Boolean {
-        return sell.x in start.x..end.x && sell.y in start.y..end.y
+    fun isBetween(start: Cell, electricField: Pair<Cell, Cell>, shift: Int = 0): Boolean {
+        return isBetween(start.x, start.y, electricField, shift)
     }
 }

@@ -1,6 +1,6 @@
-package ru.spasitel.factorioautoplanner.greedy
+package ru.spasitel.factorioautoplanner.planner
 
-import ru.spasitel.factorioautoplanner.data.Sell
+import ru.spasitel.factorioautoplanner.data.Cell
 import ru.spasitel.factorioautoplanner.data.State
 import ru.spasitel.factorioautoplanner.data.Utils
 import ru.spasitel.factorioautoplanner.data.building.Building
@@ -27,7 +27,7 @@ class UpgradePlanner {
         while (attempts < attemptsLimit) {
             val deletedSet =
                 TreeSet { o1: State, o2: State ->
-                    val freeDiff = o1.freeSells.value.size - o2.freeSells.value.size
+                    val freeDiff = o1.freeCells.value.size - o2.freeCells.value.size
                     val valueDiff = (o1.score.value - o2.score.value).sign.toInt()
                     if (freeDiff != 0) freeDiff
                     else if (valueDiff != 0) valueDiff
@@ -67,20 +67,20 @@ class UpgradePlanner {
     private fun printCurrentState(date: Date, size: Int, newState: State) {
         val sdf = SimpleDateFormat("dd/M/yyyy hh:mm:ss")
         val currentDate = sdf.format(date)
-        println("$currentDate == $attempts, size: $size, free sells: ${newState.freeSells.value.size}")
+        println("$currentDate == $attempts, size: $size, free cells: ${newState.freeCells.value.size}")
     }
 
     private fun findBestReplacements(state: State): State {
-        val freeSells = state.freeSells.value
-        val closestFreeSell = freeSells.minByOrNull { it.x * state.size.y + it.y } ?: return state
+        val freeCells = state.freeCells.value
+        val closestFreeCell = freeCells.minByOrNull { it.x * state.size.y + it.y } ?: return state
         var localBest = state
         var localBestScore = state.score.value
         for (type in TYPES) {
-            val newStates = GreedyPlanner().generateNewStates(type, state, closestFreeSell)
+            val newStates = GreedyPlanner().generateNewStates(type, state, closestFreeCell)
             for (newState in newStates) {
                 attempts++
                 var current = newState
-                if (newState.freeSells.value.isNotEmpty()) {
+                if (newState.freeCells.value.isNotEmpty()) {
                     current = findBestReplacements(newState)
                 }
                 if (current.score.value > localBestScore) {
@@ -131,8 +131,8 @@ class UpgradePlanner {
         val start = building.place.start
         val directionX = if (building.alongX()) 1 else 0
         val directionY = if (building.alongX()) 0 else 1
-        best.map[Sell(start.x + directionX, start.y + directionY)] ?: return true
-        best.map[Sell(start.x - directionX, start.y - directionY)] ?: return true
+        best.map[Cell(start.x + directionX, start.y + directionY)] ?: return true
+        best.map[Cell(start.x - directionX, start.y - directionY)] ?: return true
 
         return false
     }
@@ -140,7 +140,7 @@ class UpgradePlanner {
     fun findNextToDelete(state: State, deleted: List<Building>): List<Building>? {
         // find next building to delete
         var size = 1.coerceAtLeast(deleted.size)
-        var start = if (deleted.isEmpty()) Sell(0, 0) else deleted.last().place.start
+        var start = if (deleted.isEmpty()) Cell(0, 0) else deleted.last().place.start
         val current = deleted.toMutableList()
         if (current.isNotEmpty()) current.removeLast()
         var sizedUp = false
@@ -152,7 +152,7 @@ class UpgradePlanner {
                     start = last.place.start
                 } else {
                     size++
-                    start = Sell(0, 0)
+                    start = Cell(0, 0)
                     if (sizedUp) return null
                     sizedUp = true
                 }
@@ -164,7 +164,7 @@ class UpgradePlanner {
         return current
     }
 
-    private fun getClosestBuilding(state: State, startPosition: Sell, current: MutableList<Building>): Building? {
+    private fun getClosestBuilding(state: State, startPosition: Cell, current: MutableList<Building>): Building? {
         val maxX =
             if (current.isEmpty()) state.size.x else state.size.x.coerceAtMost(current.last().place.start.x + distance)
 
@@ -174,9 +174,9 @@ class UpgradePlanner {
             val maxY =
                 if (current.isEmpty()) state.size.y else state.size.y.coerceAtMost(current.last().place.start.y + distance)
             for (y in minY..maxY) {
-                val sell = Sell(x, y)
-                val building = state.map[sell]
-                if (building != null && building.place.start == sell && building.type in TYPES) {
+                val cell = Cell(x, y)
+                val building = state.map[cell]
+                if (building != null && building.place.start == cell && building.type in TYPES) {
                     return building
                 }
             }

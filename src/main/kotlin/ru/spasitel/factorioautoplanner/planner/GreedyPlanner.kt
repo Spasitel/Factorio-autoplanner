@@ -1,13 +1,12 @@
-package ru.spasitel.factorioautoplanner.greedy
+package ru.spasitel.factorioautoplanner.planner
 
+import ru.spasitel.factorioautoplanner.data.Cell
 import ru.spasitel.factorioautoplanner.data.Place
-import ru.spasitel.factorioautoplanner.data.Sell
 import ru.spasitel.factorioautoplanner.data.State
 import ru.spasitel.factorioautoplanner.data.Utils
 import ru.spasitel.factorioautoplanner.data.building.Building
 import ru.spasitel.factorioautoplanner.data.building.BuildingType
 import ru.spasitel.factorioautoplanner.data.building.Chest
-import ru.spasitel.factorioautoplanner.data.building.Inserter
 
 class GreedyPlanner {
 
@@ -43,18 +42,18 @@ class GreedyPlanner {
     fun generateNewStates(
         type: BuildingType,
         state: State,
-        forBuild: Sell
+        forBuild: Cell
     ): Set<State> {
         return if (type == BuildingType.BEACON)
             generateBeaconStates(state, forBuild)
         else generateStates(state, forBuild, type)
     }
 
-    private fun generateStates(state: State, forBuild: Sell, type: BuildingType): Set<State> {
+    private fun generateStates(state: State, forBuild: Cell, type: BuildingType): Set<State> {
         val newStates = HashSet<State>()
         for (x in -4 until 5) {
             for (y in -4 until 5) {
-                val start = Sell(forBuild.x + x, forBuild.y + y)
+                val start = Cell(forBuild.x + x, forBuild.y + y)
                 // build and add to newStates
                 val building = Utils.getBuilding(start, type)
                 val withoutChests = state.addBuilding(building) ?: continue
@@ -62,7 +61,7 @@ class GreedyPlanner {
                 for (withInputChestState in withInputChest) {
                     val withOutputChest = addChests(withInputChestState, building, BuildingType.PROVIDER_CHEST)
                     for (withOutputChestState in withOutputChest) {
-                        if (!withOutputChestState.freeSells.value.contains(forBuild))
+                        if (!withOutputChestState.freeCells.value.contains(forBuild))
                             newStates.add(withOutputChestState)
                     }
                 }
@@ -80,9 +79,10 @@ class GreedyPlanner {
             ) {
                 continue
             }
-            val inserterBuilding = Inserter(
-                Place(setOf(chest.first), chest.first),
-                if (type == BuildingType.PROVIDER_CHEST) (chest.third + 4).mod(8) else chest.third
+            val inserterBuilding = Utils.getBuilding(
+                chest.first,
+                BuildingType.INSERTER,
+                direction = if (type == BuildingType.PROVIDER_CHEST) (chest.third + 4).mod(8) else chest.third
             )
             val chestBuilding = Chest(
                 Place(setOf(chest.second), chest.second),
@@ -99,11 +99,11 @@ class GreedyPlanner {
         return newStates
     }
 
-    private fun generateBeaconStates(state: State, forBuild: Sell): Set<State> {
+    private fun generateBeaconStates(state: State, forBuild: Cell): Set<State> {
         val newStates = HashSet<State>()
         for (x in -2 until 3) {
             for (y in -2 until 3) {
-                val start = Sell(forBuild.x + x, forBuild.y + y)
+                val start = Cell(forBuild.x + x, forBuild.y + y)
                 // build and add to newStates
                 val building = Utils.getBuilding(start, BuildingType.BEACON)
                 state.addBuilding(building)?.let { newStates.add(it) }
@@ -114,10 +114,10 @@ class GreedyPlanner {
 
 
     //choose the closest place for building
-    private fun getClosestPlace(state: State): Sell? {
+    private fun getClosestPlace(state: State): Cell? {
         var minDistance = Int.MAX_VALUE
-        var closestStart: Sell? = null
-        for (start in state.freeSells.value) {
+        var closestStart: Cell? = null
+        for (start in state.freeCells.value) {
             val distance = getDistance(state, start)
             if (distance < minDistance) {
                 minDistance = distance
@@ -128,7 +128,7 @@ class GreedyPlanner {
         return closestStart
     }
 
-    private fun getDistance(state: State, start: Sell): Int {
+    private fun getDistance(state: State, start: Cell): Int {
         return start.x * start.x + start.y * start.y
     }
 }

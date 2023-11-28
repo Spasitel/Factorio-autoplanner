@@ -6,7 +6,14 @@ import java.util.*
 
 data class Inserter(override val place: Place, val direction: Int) : Building(place) {
     override fun toJson(number: Int): String {
-        return String.format(Locale.US, INSERTER, number, place.start.x + 0.5, place.start.y + 0.5, direction)
+        return String.format(
+            Locale.US,
+            INSERTER,
+            number,
+            place.start.x + type.size / 2.0,
+            place.start.y + type.size / 2.0,
+            direction
+        )
     }
 
     override val type: BuildingType
@@ -14,10 +21,11 @@ data class Inserter(override val place: Place, val direction: Int) : Building(pl
 
     override val symbol: Char
         get() = when (direction) {
+            0 -> '^'
             2 -> '>'
             4 -> 'v'
             6 -> '<'
-            else -> '^'
+            else -> throw RuntimeException("Unknown direction $direction")
         }
 
     fun alongX(): Boolean {
