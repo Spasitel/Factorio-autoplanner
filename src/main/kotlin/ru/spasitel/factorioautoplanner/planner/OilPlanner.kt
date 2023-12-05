@@ -19,7 +19,9 @@ class OilPlanner {
     }
 
     private fun planeRefinery(oil: Double, field: Field): State? {
-        val cell = calculateRefineryPosition(field, field.liquids["crude-oil"]?.first()!!)
+        val oilStorage =
+            field.state.buildings.first { it.type == BuildingType.STORAGE_TANK && (it as StorageTank).liquid == "crude-oil" }.place.start
+        val cell = calculateRefineryPosition(field, oilStorage)
         if (cell == null) {
             println("No place for refinery")
             return null
@@ -67,12 +69,135 @@ class OilPlanner {
                 println("A-star step $count, states size ${states.size}, current score ${current.score}, current penalty ${current.penalty}, current distance ${current.distance}")
             }
             //check if we have connection cell
-            next.firstOrNull { calculateDistance(it.current, connections) == 1.0 }?.let {
-                return it.state
+            next.forEach {
+                makeConnected(it, connections, liquid)?.let { c -> return c }
             }
             states.addAll(next)
         }
 
+    }
+
+    private fun makeConnected(
+        aStar: AStarState,
+        connections: Set<Cell>,
+        liquid: String
+    ): State? {
+        if (aStar.distance != 1.0) {
+            return null
+        }
+        val currBuilding = aStar.state.map[aStar.current]!!
+        if (currBuilding.type == BuildingType.UNDERGROUND_PIPE) {
+            val move = aStar.current.move((aStar.state.map[aStar.current] as UndergroundPipe).direction)
+            if (move !in connections) {
+                return null
+            }
+            return if (isConnected(aStar.state, move, aStar.current)) {
+                aStar.state
+            } else {
+                buildConnection(aStar.state, move, aStar.current, liquid)
+            }
+        }
+        assert(currBuilding.type == BuildingType.PIPE)
+        for (direction in setOf(0, 2, 4, 6)) {
+            val move = aStar.current.move(direction)
+            if (move !in connections) {
+                continue
+            }
+            if (isConnected(aStar.state, move, aStar.current)) {
+                return aStar.state
+            }
+        }
+        for (direction in setOf(0, 2, 4, 6)) {
+            val move = aStar.current.move(direction)
+            if (move !in connections) {
+                continue
+            }
+            val buildConnection = buildConnection(aStar.state, move, aStar.current, liquid)
+            if (buildConnection != null) {
+                return buildConnection
+            }
+        }
+        return null
+    }
+
+    private fun buildConnection(state: State, to: Cell, from: Cell, liquid: String): State? {
+        val direction = Direction.fromCells(from, to)
+        val building = state.map[to]
+        if (building != null && building.type == BuildingType.UNDERGROUND_PIPE
+            && (building as UndergroundPipe).liquid == liquid && (
+                    building.direction == direction.turnRight().direction ||
+                            building.direction == direction.turnLeft().direction)
+        ) {
+            //todo если прямто тут есть труба, то надо ее удалить
+            var result = state.removeBuilding(building)
+            result = result.addBuilding(Utils.getBuilding(to, BuildingType.PIPE, liquid = liquid)) ?: return null
+            result = connectUnderground(result, to, Direction.fromInt(building.direction), liquid) ?: return null
+            return result
+        }
+        if (building != null) {
+            return null
+        }
+        var result = state.addBuilding(Utils.getBuilding(to, BuildingType.PIPE, liquid = liquid)) ?: return null
+        result = connectUnderground(result, to, direction.turnLeft(), liquid) ?: return null
+        result = connectUnderground(result, to, direction.turnRight(), liquid) ?: return null
+        return result
+    }
+
+    private fun connectUnderground(state: State, to: Cell, direction: Direction, liquid: String): State? {
+        var distance = 1
+        var next = to.move(direction)
+        while (
+            distance < 10 &&
+            (
+                    state.map[next] == null ||
+                            state.map[next]!!.type != BuildingType.UNDERGROUND_PIPE ||
+                            (state.map[next] as UndergroundPipe).direction != direction.turnBack().direction
+                    )
+        ) {
+            next = next.move(direction)
+            distance++
+        }
+
+        if (distance == 10) {
+            throw Exception("Can't find underground pipe")
+        }
+        if ((state.map[next] as UndergroundPipe).liquid != liquid) {
+            throw Exception("Wrong liquid in underground pipe")
+        }
+
+        when (distance) {
+            1 -> {
+                var result = state.removeBuilding(state.map[next]!!)
+                result = result.addBuilding(Utils.getBuilding(next, BuildingType.PIPE, liquid = liquid)) ?: return null
+                return result
+            }
+
+            else -> {
+                return state.addBuilding(
+                    Utils.getBuilding(
+                        to.move(direction),
+                        BuildingType.UNDERGROUND_PIPE,
+                        liquid = liquid,
+                        direction = direction.direction
+                    )
+                )
+            }
+        }
+
+
+    }
+
+    private fun isConnected(state: State, move: Cell, current: Cell): Boolean {
+        val building = state.map[move] ?: return false
+        if (building.type == BuildingType.UNDERGROUND_PIPE) {
+            val undergroundPipe = building as UndergroundPipe
+            val next = move.move(undergroundPipe.direction)
+            return next == current
+        }
+        if (building.type == BuildingType.PIPE || building.type == BuildingType.STORAGE_TANK) {
+            return true
+        }
+        return false
     }
 
     private fun calculateNext(
@@ -115,7 +240,7 @@ class OilPlanner {
             )
             current.state.addBuilding(undergroundPipe)?.let { enter ->
                 var exit = undergroundPipe.place.start.move(direction)
-                for (length in 1..9) {
+                for (length in 1..10) {
                     val nextExit = exit.move(direction)
                     if (!done.contains(Pair(exit, direction)) && (
                                 enter.map[nextExit] == null ||
@@ -152,7 +277,7 @@ class OilPlanner {
         val start = pipe.place.start
         for (i in -3..7) {
             if (Utils.isBetween(start, field.chestField, i)) {
-                return 15.0 - i
+                return 30.0 - i
             }
         }
         if (Utils.isBetween(start, field.electricField)) {
@@ -195,7 +320,6 @@ class OilPlanner {
             }
         }
 
-        field.liquids[liquid]?.let { connections.addAll(it) }
         return connections
     }
 

@@ -1,6 +1,7 @@
 package ru.spasitel.factorioautoplanner.data.building
 
 import ru.spasitel.factorioautoplanner.data.Cell
+import ru.spasitel.factorioautoplanner.data.Direction
 import ru.spasitel.factorioautoplanner.data.Place
 import java.util.*
 
@@ -50,6 +51,24 @@ data class OilRefinery(override val place: Place, val direction: Int) : Building
 
             else -> throw RuntimeException("Unknown direction")
         }
+    }
+
+    fun getOutputs(): Map<String, Cell> {
+        val start = when (direction) {
+            0 -> place.start
+            2 -> place.start.move(Direction.RIGHT, 4)
+            4 -> place.start.move(Direction.DOWN, 4).move(Direction.RIGHT, 4)
+            6 -> place.start.move(Direction.DOWN, 4)
+
+            else -> throw RuntimeException("Unknown direction")
+        }
+        val d = Direction.fromInt(this.direction).turnRight()
+
+        return mapOf(
+            "heavy-oil" to start,
+            "light-oil" to start.move(d),
+            "petroleum-gas" to start.move(d).move(d)
+        )
     }
 
     override fun toString(): String {

@@ -11,6 +11,7 @@ import ru.spasitel.factorioautoplanner.data.auto.Entity
 import ru.spasitel.factorioautoplanner.data.auto.Position
 import ru.spasitel.factorioautoplanner.data.building.BuildingType
 import ru.spasitel.factorioautoplanner.data.building.Chest
+import ru.spasitel.factorioautoplanner.data.building.StorageTank
 import kotlin.math.abs
 import kotlin.math.roundToInt
 
@@ -25,11 +26,11 @@ class BluePrintFieldExtractor {
         val (roboportsField, chestField) = getRoboportsAndChests(blueprint)
 
         val chests = calculateChests(blueprint)
-        val liquids = calculateLiquids(blueprint)
         val electricField = calculateElectricField(blueprint)
 
         val state = transformBuildingsToEmpty(blueprint)
-        return Field(state, chests, liquids, roboportsField, chestField, electricField)
+        val liquids = calculateLiquids(blueprint, state)
+        return Field(liquids, chests, /*liquids,*/ roboportsField, chestField, electricField)
     }
 
     private fun calculateElectricField(blueprint: BlueprintDTO): Pair<Cell, Cell> {
@@ -46,21 +47,45 @@ class BluePrintFieldExtractor {
         )
     }
 
-    private fun calculateLiquids(blueprint: BlueprintDTO): Map<String, Set<Cell>> {
+    private fun calculateLiquids(blueprint: BlueprintDTO, state: State): State {
 
 
-        val liquids = HashMap<String, MutableSet<Cell>>()
+        var liquids = state
         blueprint.blueprint.entities.filter { it.name == "train-stop" }.forEach {
             val name = it.station!!
-            //todo directions
             if (name.contains("water")) {
-                val cell1 = Cell((it.position.x + 1).roundToInt(), (it.position.y).roundToInt())
-                val cell2 = Cell((it.position.x + 3).roundToInt(), (it.position.y + 2).roundToInt())
-                liquids.getOrPut("water") { HashSet() }.addAll(listOf(cell1, cell2))
+                val start = Cell((it.position.x + 1).roundToInt(), (it.position.y).roundToInt())
+                val storage = state.map[start]!!
+                liquids = liquids.removeBuilding(storage)
+                liquids = liquids.addBuilding(
+                    Utils.getBuilding(
+                        start,
+                        BuildingType.STORAGE_TANK,
+                        liquid = "water",
+                        direction = (storage as StorageTank).direction
+                    )
+                )!!
+
+//                val cell1 = Cell((it.position.x + 1).roundToInt(), (it.position.y).roundToInt())
+//                val cell2 = Cell((it.position.x + 3).roundToInt(), (it.position.y + 2).roundToInt())
+//                liquids.getOrPut("water") { HashSet() }.addAll(listOf(cell1, cell2))
             } else if (name.contains("oil")) {
-                val cell1 = Cell((it.position.x - 22).roundToInt(), (it.position.y + 3).roundToInt())
-                val cell2 = Cell((it.position.x - 24).roundToInt(), (it.position.y + 1).roundToInt())
-                liquids.getOrPut("crude-oil") { HashSet() }.addAll(listOf(cell1, cell2))
+                val start = Cell((it.position.x - 24).roundToInt(), (it.position.y + 1).roundToInt())
+                val storage = state.map[start]!!
+                liquids = liquids.removeBuilding(storage)
+                liquids = liquids.addBuilding(
+                    Utils.getBuilding(
+                        start,
+                        BuildingType.STORAGE_TANK,
+                        liquid = "crude-oil",
+                        direction = (storage as StorageTank).direction
+                    )
+                )!!
+
+
+//                val cell1 = Cell((it.position.x - 22).roundToInt(), (it.position.y + 3).roundToInt())
+//                val cell2 = Cell((it.position.x - 24).roundToInt(), (it.position.y + 1).roundToInt())
+//                liquids.getOrPut("crude-oil") { HashSet() }.addAll(listOf(cell1, cell2))
             }
         }
         return liquids
@@ -209,10 +234,26 @@ class BluePrintFieldExtractor {
 
                 }
 
-                "radar",
-                "storage-tank" -> {
+                "radar" -> {
                     val start = Cell((x - 1.5).roundToInt(), (y - 1.5).roundToInt())
                     val addBuilding = state.addBuilding(Utils.getBuilding(start, BuildingType.EMPTY3))
+                    if (addBuilding == null) {
+                        println("Can't add building $entity")
+                    } else {
+                        state = addBuilding
+                    }
+                }
+
+                "storage-tank" -> {
+                    val start = Cell((x - 1.5).roundToInt(), (y - 1.5).roundToInt())
+                    val addBuilding = state.addBuilding(
+                        Utils.getBuilding(
+                            start,
+                            BuildingType.STORAGE_TANK,
+                            direction = entity.direction,
+                            liquid = "empty"
+                        )
+                    )
                     if (addBuilding == null) {
                         println("Can't add building $entity")
                     } else {
@@ -367,8 +408,6 @@ class BluePrintFieldExtractor {
                             BuildingType.REQUEST_CHEST else
                             BuildingType.PROVIDER_CHEST
                         test = test.addBuilding(Utils.getBuilding(cell, type))!!
-                    } else if (toField.liquids.values.any { it.contains(cell) }) {
-                        test = test.addBuilding(Utils.getBuilding(cell, BuildingType.REQUEST_CHEST))!!
                     }
                 }
             }

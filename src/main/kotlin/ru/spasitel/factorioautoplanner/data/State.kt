@@ -105,6 +105,7 @@ data class State(
             return null
         }
 
+
         val newMap = map.toMutableMap()
         for (cell in building.place.cells) {
             newMap[cell] = building

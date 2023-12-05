@@ -27,4 +27,18 @@ data class Cell(val x: Int, val y: Int) {
             else -> throw RuntimeException()
         }
     }
+
+    fun move(direction: Direction): Cell {
+        return when (direction) {
+            Direction.UP -> up()
+            Direction.RIGHT -> right()
+            Direction.DOWN -> down()
+            Direction.LEFT -> left()
+        }
+    }
+
+    fun move(direction: Direction, i: Int): Cell {
+        return direction.move(this, i)
+    }
+
 }

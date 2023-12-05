@@ -71,7 +71,7 @@ object Utils {
         var bCount = 1
         var json = StringBuilder(START_JSON)
         for (b in best.buildings) {
-            if (b.type == BuildingType.EMPTY) continue
+            if (b.type == BuildingType.EMPTY || b.type == BuildingType.EMPTY2 || b.type == BuildingType.EMPTY3 || b.type == BuildingType.EMPTY4) continue
             json.append(b.toJson(bCount))
             bCount++
         }

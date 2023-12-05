@@ -4,6 +4,7 @@ import com.google.gson.Gson
 import ru.spasitel.factorioautoplanner.data.Field
 import ru.spasitel.factorioautoplanner.data.ProcessedItem
 import ru.spasitel.factorioautoplanner.data.State
+import ru.spasitel.factorioautoplanner.data.Utils
 import ru.spasitel.factorioautoplanner.data.auto.BlueprintDTO
 import ru.spasitel.factorioautoplanner.formatter.BluePrintFieldExtractor
 import ru.spasitel.factorioautoplanner.formatter.Formatter
@@ -52,6 +53,8 @@ class GlobalPlanner {
         } else {
             field.state
         }
+        Utils.printBest(state)
+
         val done = HashSet<String>()
         while (recipeTree.keys.minus(done).isNotEmpty()) {
             val item = calculateNextItem(recipeTree, done)

@@ -33,6 +33,6 @@ data class UndergroundPipe(override val place: Place, val liquid: String, val di
 
     companion object {
         private const val JSON =
-            "{\"entity_number\":%d,\"name\":\"underground-pipe\",\"position\":{\"x\":%.1f,\"y\":%.1f},\"direction\":%d},"
+            "{\"entity_number\":%d,\"name\":\"pipe-to-ground\",\"position\":{\"x\":%.1f,\"y\":%.1f},\"direction\":%d},"
     }
 }
