@@ -105,6 +105,9 @@ data class State(
             return null
         }
 
+        if (!isLiquidsValid(building)) {
+            return null
+        }
 
         val newMap = map.toMutableMap()
         for (cell in building.place.cells) {
@@ -114,6 +117,21 @@ data class State(
         val newBuildings: MutableSet<Building> = HashSet(buildings)
         newBuildings.add(building)
         return State(newBuildings, newMap, size)
+    }
+
+    private fun isLiquidsValid(building: Building): Boolean {
+        if (building.type !in listOf(
+                BuildingType.STORAGE_TANK,
+                BuildingType.OIL_REFINERY,
+                BuildingType.UNDERGROUND_PIPE,
+                BuildingType.PIPE,
+                BuildingType.CHEMICAL_PLANT,
+            )
+        ) {
+            return true
+        }
+//        TODO()
+        return true
     }
 
     fun removeBuilding(building: Building): State {

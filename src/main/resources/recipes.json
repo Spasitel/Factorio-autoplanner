@@ -890,6 +890,22 @@
     ]
   },
   {
+    "name": "electronic-circuit-fixed",
+    "energy_required": 7,
+    "result": "electronic-circuit",
+    "result_count": 14,
+    "ingredients": [
+      {
+        "name": "iron-plate",
+        "amount": 14
+      },
+      {
+        "name": "copper-plate",
+        "amount": 15
+      }
+    ]
+  },
+  {
     "name": "electronic-circuit",
     "energy_required": 0.5,
     "result": "electronic-circuit",
@@ -922,7 +938,7 @@
   },
   {
     "name": "electric-mining-drill",
-    "energy_required": 0.5,
+    "energy_required": 2,
     "result": "electric-mining-drill",
     "ingredients": [
       {
@@ -941,7 +957,7 @@
   },
   {
     "name": "burner-mining-drill",
-    "energy_required": 0.5,
+    "energy_required": 2,
     "result": "burner-mining-drill",
     "ingredients": [
       {
@@ -1120,7 +1136,7 @@
   },
   {
     "name": "submachine-gun",
-    "energy_required": 0.5,
+    "energy_required": 10,
     "result": "submachine-gun",
     "ingredients": [
       {
@@ -1916,7 +1932,7 @@
   },
   {
     "name": "steel-plate",
-    "energy_required": 0.5,
+    "energy_required": 16,
     "category": "smelting",
     "result": "steel-plate",
     "ingredients": [
@@ -2257,7 +2273,7 @@
   },
   {
     "name": "cannon-shell",
-    "energy_required": 0.5,
+    "energy_required": 8,
     "result": "cannon-shell",
     "ingredients": [
       {
@@ -2276,7 +2292,7 @@
   },
   {
     "name": "explosive-cannon-shell",
-    "energy_required": 0.5,
+    "energy_required": 8,
     "result": "explosive-cannon-shell",
     "ingredients": [
       {
@@ -2395,7 +2411,7 @@
   },
   {
     "name": "tank",
-    "energy_required": 0.5,
+    "energy_required": 5,
     "result": "tank",
     "ingredients": [
       {
@@ -2811,7 +2827,7 @@
   },
   {
     "name": "advanced-circuit",
-    "energy_required": 0.5,
+    "energy_required": 6,
     "result": "advanced-circuit",
     "ingredients": [
       {
@@ -2830,7 +2846,7 @@
   },
   {
     "name": "processing-unit",
-    "energy_required": 0.5,
+    "energy_required": 10,
     "category": "crafting-with-fluid",
     "result": "processing-unit",
     "ingredients": [
@@ -2845,6 +2861,31 @@
       {
         "name": "sulfuric-acid",
         "amount": 5
+      }
+    ]
+  },
+  {
+    "name": "processing-unit-fixed",
+    "energy_required": 490,
+    "category": "crafting-with-fluid",
+    "result": "processing-unit",
+    "result_count": 49,
+    "ingredients": [
+      {
+        "name": "iron-plate",
+        "amount": 700
+      },
+      {
+        "name": "copper-plate",
+        "amount": 750
+      },
+      {
+        "name": "advanced-circuit",
+        "amount": 98
+      },
+      {
+        "name": "sulfuric-acid",
+        "amount": 245
       }
     ]
   },
@@ -3190,7 +3231,7 @@
   },
   {
     "name": "explosives",
-    "energy_required": 0.5,
+    "energy_required": 4,
     "category": "chemistry",
     "result_count": 2,
     "result": "explosives",
@@ -3211,7 +3252,7 @@
   },
   {
     "name": "battery",
-    "energy_required": 0.5,
+    "energy_required": 4,
     "category": "chemistry",
     "result": "battery",
     "ingredients": [
@@ -3288,7 +3329,7 @@
   },
   {
     "name": "low-density-structure",
-    "energy_required": 0.5,
+    "energy_required": 20,
     "category": "crafting",
     "result": "low-density-structure",
     "ingredients": [
@@ -3343,23 +3384,23 @@
     "energy_required": 3,
     "category": "rocket-building",
     "result": "space-science-pack",
-    "result_count": 714,
+    "result_count": 5000,
     "ingredients": [
       {
         "name": "rocket-control-unit",
-        "amount": 714
+        "amount": 5000
       },
       {
         "name": "low-density-structure",
-        "amount": 714
+        "amount": 5000
       },
       {
         "name": "rocket-fuel",
-        "amount": 714
+        "amount": 5000
       },
       {
         "name": "satellite",
-        "amount": 1
+        "amount": 7
       }
     ]
   },

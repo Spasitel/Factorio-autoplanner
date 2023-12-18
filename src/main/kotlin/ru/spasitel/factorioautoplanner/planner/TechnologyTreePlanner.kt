@@ -10,10 +10,13 @@ class TechnologyTreePlanner {
 
     fun readRecipesFromFile(): RecipesDTO {
         val gson = Gson()
-        val json = this::class.java.getResource("/recipes.json").readText()
+        val json = this::class.java.getResource("/recipes.json")!!.readText()
         val fromJson = gson.fromJson(json, RecipesDTO::class.java)
         val corrected = fromJson.filter {
-            it.name != "solid-fuel-from-petroleum-gas" && it.name != "solid-fuel-from-heavy-oil"
+            it.name != "solid-fuel-from-petroleum-gas"
+                    && it.name != "solid-fuel-from-heavy-oil"
+                    && it.name != "processing-unit"
+                    && it.name != "electronic-circuit"
         }.map {
             if (it.results?.size == 1) {
                 it.copy(result = it.results[0].name, result_count = it.results[0].amount)
@@ -135,7 +138,11 @@ class TechnologyTreePlanner {
             "crude-oil",
             "heavy-oil",
             "light-oil",
-            "petroleum-gas"
+            "petroleum-gas",
+            "sulfuric-acid",
+            "sulfur",
+            "lubricant",
+            "rocket-fuel",
         )
 
         fun scienceRoundTree(): Map<String, ProcessedItem> {
@@ -206,25 +213,25 @@ class TechnologyTreePlanner {
             "plastic-bar",
             "rocket-fuel",
             "stone-brick",
-        )
-
-        val productivity_module_limitation = setOf(
+            "electric-engine-unit",
+            "battery",
             "iron-plate",
             "copper-plate",
             "steel-plate",
+        )
+
+        val productivity_module_limitation = setOf(
             "empty-barrel",
             "uranium-processing",
             "copper-cable",
             "iron-stick",
             "iron-gear-wheel",
-            "electronic-circuit",
             "advanced-circuit",
+            "electronic-circuit",
             "processing-unit",
             "engine-unit",
-            "electric-engine-unit",
             "uranium-fuel-cell",
             "explosives",
-            "battery",
             "flying-robot-frame",
             "low-density-structure",
             "nuclear-fuel",
@@ -238,7 +245,9 @@ class TechnologyTreePlanner {
             "military-science-pack",
             "production-science-pack",
             "utility-science-pack",
-            "kovarex-enrichment-process"
+            "kovarex-enrichment-process",
+            "electronic-circuit-fixed",
+            "processing-unit-fixed",
         )
 
     }

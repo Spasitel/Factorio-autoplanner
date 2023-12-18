@@ -4,12 +4,14 @@ import ru.spasitel.factorioautoplanner.data.Place
 import java.util.*
 
 
-data class Inserter(override val place: Place, val direction: Int) : Building(place) {
+data class Inserter(override val place: Place, val direction: Int, val kind: String = "stack-inserter") :
+    Building(place) {
     override fun toJson(number: Int): String {
         return String.format(
             Locale.US,
             INSERTER,
             number,
+            kind,
             place.start.x + type.size / 2.0,
             place.start.y + type.size / 2.0,
             direction
@@ -38,6 +40,6 @@ data class Inserter(override val place: Place, val direction: Int) : Building(pl
 
     companion object {
         const val INSERTER =
-            "{\"entity_number\":%d,\"name\":\"fast-inserter\",\"position\":{\"x\":%.1f,\"y\":%.1f},\"direction\":%d},"
+            "{\"entity_number\":%d,\"name\":\"%s\",\"position\":{\"x\":%.1f,\"y\":%.1f},\"direction\":%d},"
     }
 }

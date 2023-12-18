@@ -3,7 +3,7 @@ package ru.spasitel.factorioautoplanner.data.building
 import ru.spasitel.factorioautoplanner.data.Place
 import java.util.*
 
-data class Pump(override val place: Place, val liquid: String, val direction: Int) : Building(place) {
+data class Pump(override val place: Place, val direction: Int) : Building(place) {
     override val type: BuildingType
         get() = BuildingType.PUMP
 

@@ -24,7 +24,9 @@ object Utils {
         start: Cell,
         type: BuildingType,
         direction: Int? = null,
-        liquid: String? = null
+        liquid: String? = null,
+        recipe: String? = null,
+        kind: String = "stack-inserter"
     ): Building {
         val place = Place(cellsForBuilding(start, type.size), start)
 
@@ -37,15 +39,28 @@ object Utils {
             BuildingType.EMPTY2 -> EmptySpace(place, 2)
             BuildingType.EMPTY3 -> EmptySpace(place, 3)
             BuildingType.EMPTY4 -> EmptySpace(place, 4)
-            BuildingType.INSERTER -> Inserter(place, direction!!)
-            BuildingType.PUMP -> Pump(place, liquid!!, direction!!)
+            BuildingType.INSERTER -> Inserter(place, direction!!, kind)
+            BuildingType.PUMP -> Pump(placeForPump(start, direction!!), direction)
             BuildingType.STORAGE_TANK -> StorageTank(place, liquid!!, direction!!)
             BuildingType.OIL_REFINERY -> OilRefinery(place, direction!!)
             BuildingType.PIPE -> Pipe(place, liquid!!)
             BuildingType.UNDERGROUND_PIPE -> UndergroundPipe(place, liquid!!, direction!!)
+            BuildingType.CHEMICAL_PLANT -> ChemicalPlant(place, direction!!, recipe!!)
+            BuildingType.ASSEMBLER -> Assembler(place, direction!!, recipe!!)
+            BuildingType.LAB -> Lab(place)
+            BuildingType.ROCKET_SILO -> RocketSilo(place, direction!!)
 
+            else -> throw IllegalArgumentException("Unknown building type $type")
+        }
+    }
 
-            else -> throw IllegalArgumentException("Unknown building type")
+    private fun placeForPump(start: Cell, direction: Int): Place {
+        return when (direction) {
+            0 -> Place(setOf(start, start.down()), start)
+            2 -> Place(setOf(start, start.right()), start)
+            4 -> Place(setOf(start, start.down()), start)
+            6 -> Place(setOf(start, start.right()), start)
+            else -> throw IllegalArgumentException("Unknown direction $direction")
         }
     }
 

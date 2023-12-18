@@ -19,6 +19,7 @@ data class Entity(
     val name: String,
     val neighbours: List<Int>?,
     val position: Position,
+    val recipe: String?,
     val station: String?
 )
 

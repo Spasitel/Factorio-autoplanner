@@ -1,9 +1,12 @@
 package ru.spasitel.factorioautoplanner.data.building
 
+import ru.spasitel.factorioautoplanner.data.Direction
+import ru.spasitel.factorioautoplanner.data.LiquidConnection
 import ru.spasitel.factorioautoplanner.data.Place
 import java.util.*
 
-data class UndergroundPipe(override val place: Place, val liquid: String, val direction: Int) : Building(place) {
+data class UndergroundPipe(override val place: Place, override var liquid: String, val direction: Int) : LiquidBuilding,
+    Building(place) {
     override val type: BuildingType
         get() = BuildingType.UNDERGROUND_PIPE
 
@@ -25,6 +28,10 @@ data class UndergroundPipe(override val place: Place, val liquid: String, val di
             place.start.y + type.size / 2.0,
             direction
         )
+    }
+
+    override fun getLiquidConnections(): List<LiquidConnection> {
+        return listOf(LiquidConnection(place.start, place.start.move(direction), liquid, Direction.fromInt(direction)))
     }
 
     override fun toString(): String {
