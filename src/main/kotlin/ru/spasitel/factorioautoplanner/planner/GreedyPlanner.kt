@@ -1,12 +1,12 @@
 package ru.spasitel.factorioautoplanner.planner
 
 import ru.spasitel.factorioautoplanner.data.Cell
-import ru.spasitel.factorioautoplanner.data.Place
+import ru.spasitel.factorioautoplanner.data.Field
 import ru.spasitel.factorioautoplanner.data.State
 import ru.spasitel.factorioautoplanner.data.Utils
 import ru.spasitel.factorioautoplanner.data.building.Building
 import ru.spasitel.factorioautoplanner.data.building.BuildingType
-import ru.spasitel.factorioautoplanner.data.building.Chest
+import ru.spasitel.factorioautoplanner.data.building.ProviderChest
 
 class GreedyPlanner {
 
@@ -70,7 +70,13 @@ class GreedyPlanner {
         return newStates
     }
 
-    private fun addChests(withoutChests: State, building: Building, type: BuildingType): Set<State> {
+    public fun addChests(
+        withoutChests: State,
+        building: Building,
+        type: BuildingType,
+        items: Set<String> = setOf(),
+        field: Field? = null
+    ): Set<State> {
         val newStates = HashSet<State>()
         for (chest in Utils.chestsPositions(building)) {
             if (withoutChests.map.containsKey(chest.first) ||
@@ -79,20 +85,36 @@ class GreedyPlanner {
             ) {
                 continue
             }
+            if (field != null && !Utils.isBetween(chest.second, field.chestField)) continue
+
             val inserterBuilding = Utils.getBuilding(
                 chest.first,
                 BuildingType.INSERTER,
                 direction = if (type == BuildingType.PROVIDER_CHEST) (chest.third + 4).mod(8) else chest.third
             )
-            val chestBuilding = Chest(
-                Place(setOf(chest.second), chest.second),
-                type == BuildingType.PROVIDER_CHEST
+            var newItems = items.toMutableSet()
+            if (type == BuildingType.PROVIDER_CHEST &&
+                items.isNotEmpty() &&
+                withoutChests.map.containsKey(chest.second)
+            ) {
+                newItems = (withoutChests.map.getValue(chest.second) as ProviderChest).items.plus(items).toMutableSet()
+            }
+            val chestBuilding = Utils.getBuilding(
+                chest.second,
+                type,
+                items = newItems
             )
             withoutChests.addBuilding(inserterBuilding)?.let {
                 if (!withoutChests.map.containsKey(chest.second)) {
                     it.addBuilding(chestBuilding)?.let { state -> newStates.add(state) }
                 } else {
-                    newStates.add(it)
+                    if (type == BuildingType.PROVIDER_CHEST) {
+                        it.removeBuilding(withoutChests.map[chest.second]!!).let { state ->
+                            state.addBuilding(chestBuilding)?.let { state2 -> newStates.add(state2) }
+                        }
+                    } else {
+                        newStates.add(it)
+                    }
                 }
             }
         }

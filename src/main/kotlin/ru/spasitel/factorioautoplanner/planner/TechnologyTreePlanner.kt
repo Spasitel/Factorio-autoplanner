@@ -109,7 +109,7 @@ class TechnologyTreePlanner {
                 } else if (ingredient !in result) {
 
                     result[ingredient] =
-                        ProcessedItem(ingredient, -1.0, EMPTY_RECIPE, HashMap(), HashMap(), BuildingType.ASSEMBLER)
+                        ProcessedItem(ingredient, -1.0, EMPTY_RECIPE, HashMap(), HashMap(), BuildingType.ASSEMBLER, 0.0)
                 }
                 result[ingredient]!!.usedIn[item] = -1.0
             }
@@ -148,13 +148,13 @@ class TechnologyTreePlanner {
         fun scienceRoundTree(): Map<String, ProcessedItem> {
             val recipes = TechnologyTreePlanner().readRecipesFromFile()
             val toBuildMilitary = mapOf(
-                "automation-science-pack" to 100.0,
-                "logistic-science-pack" to 100.0,
-                "military-science-pack" to 50.0,
-                "chemical-science-pack" to 100.0,
-                "production-science-pack" to 50.0,
-                "utility-science-pack" to 100.0,
-                "space-science-pack" to 100.0
+                "automation-science-pack" to 1.0,
+                "logistic-science-pack" to 1.0,
+                "military-science-pack" to 0.5,
+                "chemical-science-pack" to 1.0,
+                "production-science-pack" to 0.5,
+                "utility-science-pack" to 1.0,
+                "space-science-pack" to 1.0
             )
             return TechnologyTreePlanner().createRecipeTree(base, toBuildMilitary, recipes)
         }

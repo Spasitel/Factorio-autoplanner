@@ -1,5 +1,7 @@
 package ru.spasitel.factorioautoplanner.data.building
 
+import ru.spasitel.factorioautoplanner.data.Cell
+import ru.spasitel.factorioautoplanner.data.Direction
 import ru.spasitel.factorioautoplanner.data.Place
 import java.util.*
 
@@ -23,15 +25,23 @@ data class Inserter(override val place: Place, val direction: Int, val kind: Str
 
     override val symbol: Char
         get() = when (direction) {
-            0 -> '^'
-            2 -> '>'
-            4 -> 'v'
-            6 -> '<'
+            4 -> '^'
+            6 -> '>'
+            0 -> 'v'
+            2 -> '<'
             else -> throw RuntimeException("Unknown direction $direction")
         }
 
     fun alongX(): Boolean {
         return direction == 2 || direction == 6
+    }
+
+    fun to(): Cell {
+        return place.start.move(Direction.fromInt(direction).turnBack())
+    }
+
+    fun from(): Cell {
+        return place.start.move(direction)
     }
 
     override fun toString(): String {

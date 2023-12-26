@@ -26,15 +26,16 @@ object Utils {
         direction: Int? = null,
         liquid: String? = null,
         recipe: String? = null,
-        kind: String = "stack-inserter"
+        kind: String = "stack-inserter",
+        items: MutableSet<String> = mutableSetOf()
     ): Building {
         val place = Place(cellsForBuilding(start, type.size), start)
 
         return when (type) {
             BuildingType.BEACON -> Beacon(place)
             BuildingType.SMELTER -> Smelter(place)
-            BuildingType.PROVIDER_CHEST -> Chest(place, true)
-            BuildingType.REQUEST_CHEST -> Chest(place, false)
+            BuildingType.PROVIDER_CHEST -> ProviderChest(place, items = items)
+            BuildingType.REQUEST_CHEST -> RequestChest(place)
             BuildingType.EMPTY -> EmptySpace(place, 1)
             BuildingType.EMPTY2 -> EmptySpace(place, 2)
             BuildingType.EMPTY3 -> EmptySpace(place, 3)
@@ -46,7 +47,7 @@ object Utils {
             BuildingType.PIPE -> Pipe(place, liquid!!)
             BuildingType.UNDERGROUND_PIPE -> UndergroundPipe(place, liquid!!, direction!!)
             BuildingType.CHEMICAL_PLANT -> ChemicalPlant(place, direction!!, recipe!!)
-            BuildingType.ASSEMBLER -> Assembler(place, direction!!, recipe!!)
+            BuildingType.ASSEMBLER -> Assembler(place, direction, recipe!!)
             BuildingType.LAB -> Lab(place)
             BuildingType.ROCKET_SILO -> RocketSilo(place, direction!!)
 
@@ -83,6 +84,11 @@ object Utils {
     @JvmStatic
     fun printBest(best: State) {
         println(best)
+        val message = convertToJson(best)
+        println(message)
+    }
+
+    fun convertToJson(best: State): String? {
         var bCount = 1
         var json = StringBuilder(START_JSON)
         for (b in best.buildings) {
@@ -92,7 +98,8 @@ object Utils {
         }
         json = StringBuilder(json.substring(0, json.length - 1))
         json.append(END_JSON)
-        println(Formatter.encode(json.toString()))
+        val message = Formatter.encode(json.toString())
+        return message
     }
 
     fun isBetween(x: Int, y: Int, chestField: Pair<Cell, Cell>, shift: Int = 0): Boolean {

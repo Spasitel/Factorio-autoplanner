@@ -1,5 +1,7 @@
 package ru.spasitel.factorioautoplanner.data
 
+import kotlin.math.abs
+
 data class Cell(val x: Int, val y: Int) {
 
     fun up(): Cell {
@@ -39,6 +41,10 @@ data class Cell(val x: Int, val y: Int) {
 
     fun move(direction: Direction, i: Int): Cell {
         return direction.move(this, i)
+    }
+
+    fun maxDistanceTo(to: Cell): Int {
+        return abs(x - to.x).coerceAtLeast(abs(y - to.y))
     }
 
 }

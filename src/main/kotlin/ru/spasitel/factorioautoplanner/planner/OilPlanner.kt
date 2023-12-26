@@ -38,7 +38,7 @@ class OilPlanner {
         return null
     }
 
-    private fun planeLiquid(liquid: String, start: Cell, state: State, field: Field): State? {
+    public fun planeLiquid(liquid: String, start: Cell, state: State, field: Field): State? {
         //find all pipes with this liquid
         //calculate all possible connections cells
         val connections = calculateConnections(liquid, state, field)
@@ -131,7 +131,8 @@ class OilPlanner {
             //todo если прямто тут есть труба, то надо ее удалить
             var result = state.removeBuilding(building)
             result = result.addBuilding(Utils.getBuilding(to, BuildingType.PIPE, liquid = liquid)) ?: return null
-            result = connectUnderground(result, to, Direction.fromInt(building.direction), liquid) ?: return null
+            result =
+                connectUnderground(result, to, Direction.fromInt(building.direction).turnBack(), liquid) ?: return null
             return result
         }
         if (building != null) {
@@ -147,18 +148,18 @@ class OilPlanner {
         var distance = 1
         var next = to.move(direction)
         while (
-            distance < 10 &&
+            distance < 11 &&
             (
                     state.map[next] == null ||
                             state.map[next]!!.type != BuildingType.UNDERGROUND_PIPE ||
-                            (state.map[next] as UndergroundPipe).direction != direction.turnBack().direction
+                            (state.map[next] as UndergroundPipe).direction != direction.direction
                     )
         ) {
             next = next.move(direction)
             distance++
         }
 
-        if (distance == 10) {
+        if (distance == 11) {
             throw Exception("Can't find underground pipe")
         }
         if ((state.map[next] as UndergroundPipe).liquid != liquid) {
@@ -178,7 +179,7 @@ class OilPlanner {
                         to.move(direction),
                         BuildingType.UNDERGROUND_PIPE,
                         liquid = liquid,
-                        direction = direction.direction
+                        direction = direction.turnBack().direction
                     )
                 )
             }
