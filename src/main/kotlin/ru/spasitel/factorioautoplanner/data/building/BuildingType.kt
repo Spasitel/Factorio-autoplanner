@@ -5,6 +5,7 @@ enum class BuildingType(var size: Int) {
     INSERTER(1),
     REQUEST_CHEST(1),
     PROVIDER_CHEST(1),
+    STEEL_CHEST(1),
     SMELTER(3),
     EMPTY(1),
     EMPTY2(2),
@@ -21,5 +22,7 @@ enum class BuildingType(var size: Int) {
     ASSEMBLER(3),
     CHEMICAL_PLANT(3),
     LAB(3),
+    ROBOPORT(4),
+    TRAIN_STOP(2),
 
 }

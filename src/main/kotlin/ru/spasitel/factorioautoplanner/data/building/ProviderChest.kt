@@ -21,7 +21,7 @@ data class ProviderChest(override val place: Place, val items: MutableSet<String
         get() = 'p'
 
     override fun toString(): String {
-        return super.toString()
+        return super.toString() + " $items"
     }
 
     companion object {

@@ -2,10 +2,11 @@ package ru.spasitel.factorioautoplanner.data.building
 
 import ru.spasitel.factorioautoplanner.data.Cell
 import ru.spasitel.factorioautoplanner.data.Direction
+import ru.spasitel.factorioautoplanner.data.LiquidConnection
 import ru.spasitel.factorioautoplanner.data.Place
 import java.util.*
 
-data class OilRefinery(override val place: Place, val direction: Int) : Building(place) {
+data class OilRefinery(override val place: Place, val direction: Int) : LiquidConnectionsBuilding, Building(place) {
     override fun toJson(number: Int): String {
         return String.format(
             Locale.US,
@@ -20,7 +21,7 @@ data class OilRefinery(override val place: Place, val direction: Int) : Building
     override val type: BuildingType
         get() = BuildingType.OIL_REFINERY
     override val symbol: Char
-        get() = 'o'
+        get() = 'O'
 
     companion object {
         private const val OIL_REFINERY =
@@ -53,7 +54,7 @@ data class OilRefinery(override val place: Place, val direction: Int) : Building
         }
     }
 
-    fun getOutputs(): Map<String, Cell> {
+    private fun getOutputs(): Map<String, Cell> {
         val start = when (direction) {
             0 -> place.start
             2 -> place.start.move(Direction.RIGHT, 4)
@@ -65,10 +66,24 @@ data class OilRefinery(override val place: Place, val direction: Int) : Building
         val d = Direction.fromInt(this.direction).turnRight()
 
         return mapOf(
-            "heavy-oil" to start,
-            "light-oil" to start.move(d),
-            "petroleum-gas" to start.move(d).move(d)
+//            "heavy-oil" to start,
+//            "light-oil" to start.move(d).move(d),
+//            "petroleum-gas" to start.move(d, 4)
+            "empty" to start,
+            "empty" to start.move(d).move(d),
+            "empty" to start.move(d, 4)
         )
+    }
+
+    override fun getLiquidConnections(): List<LiquidConnection> {
+        return getOutputs().map { (liquid, cell) ->
+            LiquidConnection(
+                cell,
+                cell.move(Direction.fromInt(direction)),
+                liquid,
+                Direction.fromInt(direction)
+            )
+        }.toList()
     }
 
     override fun toString(): String {

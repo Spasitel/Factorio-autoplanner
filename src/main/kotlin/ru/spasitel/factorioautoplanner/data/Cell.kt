@@ -1,6 +1,7 @@
 package ru.spasitel.factorioautoplanner.data
 
 import kotlin.math.abs
+import kotlin.math.sqrt
 
 data class Cell(val x: Int, val y: Int) {
 
@@ -45,6 +46,10 @@ data class Cell(val x: Int, val y: Int) {
 
     fun maxDistanceTo(to: Cell): Int {
         return abs(x - to.x).coerceAtLeast(abs(y - to.y))
+    }
+
+    fun distanceTo(to: Cell): Double {
+        return sqrt((x - to.x) * (x - to.x).toDouble() + (y - to.y) * (y - to.y))
     }
 
 }

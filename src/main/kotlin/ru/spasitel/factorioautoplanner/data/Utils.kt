@@ -1,10 +1,14 @@
 package ru.spasitel.factorioautoplanner.data
 
+import io.github.oshai.kotlinlogging.KotlinLogging
 import ru.spasitel.factorioautoplanner.data.building.*
 import ru.spasitel.factorioautoplanner.formatter.Formatter
 import ru.spasitel.factorioautoplanner.simple.InsertersPlaces
 
 object Utils {
+    private val logger = KotlinLogging.logger {}
+
+    var checkLiquids = false
 
     const val START_JSON =
         "{\"blueprint\":{\"icons\":[{\"signal\":{\"type\":\"item\",\"name\":\"electric-furnace\"},\"index\":1}],\"entities\":["
@@ -50,6 +54,9 @@ object Utils {
             BuildingType.ASSEMBLER -> Assembler(place, direction, recipe!!)
             BuildingType.LAB -> Lab(place)
             BuildingType.ROCKET_SILO -> RocketSilo(place, direction!!)
+            BuildingType.STEEL_CHEST -> SteelChest(place)
+            BuildingType.ROBOPORT -> Roboport(place)
+            BuildingType.TRAIN_STOP -> TrainStop(place, recipe!!, direction!!)
 
             else -> throw IllegalArgumentException("Unknown building type $type")
         }
@@ -68,7 +75,7 @@ object Utils {
 
     fun chestsPositions(building: Building): Set<Triple<Cell, Cell, Int>> {
         val cells = HashSet<Triple<Cell, Cell, Int>>()
-        for (position in InsertersPlaces.values()) {
+        for (position in InsertersPlaces.entries) {
             cells.add(
                 Triple(
                     Cell(building.place.start.x + position.iX, building.place.start.y + position.iY),
@@ -83,9 +90,9 @@ object Utils {
 
     @JvmStatic
     fun printBest(best: State) {
-        println(best)
+        logger.info { best }
         val message = convertToJson(best)
-        println(message)
+        logger.info { message }
     }
 
     fun convertToJson(best: State): String? {

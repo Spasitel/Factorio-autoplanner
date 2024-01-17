@@ -85,12 +85,37 @@ internal class FormatterTest {
     }
 
     @Test
+    fun testReformatter5() {
+        val orig =
+            "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"
+        val decode = decode(orig)!!
+        val gson = Gson()
+        val mMineUserEntity = gson.fromJson(decode, BlueprintDTO::class.java)
+
+        val y = mMineUserEntity.blueprint.entities.filter { it.name == "steel-chest" }.minOf { it.position.y } - 2
+        val x = mMineUserEntity.blueprint.entities.filter { it.name == "arithmetic-combinator" }.maxOf { it.position.x }
+        for (entity in mMineUserEntity.blueprint!!.entities!!) {
+            if (entity.name != "decider-combinator" && entity.name != "arithmetic-combinator") continue
+            if (entity.position.x == x) {
+                continue
+            }
+            if (entity.position.y >= y) {
+                entity.position.y += 2
+            }
+        }
+
+        val repl = gson.toJson(mMineUserEntity)
+        println(encode(repl))
+    }
+
+    @Test
     fun testDirections() {
         val decode = decode(refinery)!!
         val mMineUserEntity = Gson().fromJson(decode, BlueprintDTO::class.java)
         val normal = BluePrintFieldExtractor().normalizeBlueprint(mMineUserEntity)
         println(normal)
     }
+
     companion object {
         const val pipes =
             "0eNqd1u1ugyAUBuB7Ob+x4VPQW1mWxbakIZtoFJc1jfc+bZdFO8zB/RNDHg7wgt7g+DHYtnM+QHkDd2p8D+XLDXp38dXH/C5cWwsluGBrIOCrem71oemqi81C5d9hJOD82X5BycZXAtYHF5x9OPfG9c0P9dF2U4dfoXUTS6Bt+qlz4+eRJiDTTB8Ugev0yKiRBzWO5I/CcYXiikAVmuOKRBW+rEXEFYXPyOBKvm91NxSNKxJXDK4oXClwReAKo/sCs8UkpJclMHh8aZHA7Mwv32DkPmarGjzBNCF7DI8wTYgN0/GbKrZji6XWxQZn0jn1xBE4u86eHp14DF9kfKhb7NTqfE3K2P1IcZKvyBjCUGQe54dQKVPlHK9LbZN5jFyfgiw02aVrBn/GbmItkni5g19tk0haELWHl098DMz/C7LneuX8Lb9/9cvFTwKBT9v1jwkZJnXBtTbCCDFl6Bv6SZEU"

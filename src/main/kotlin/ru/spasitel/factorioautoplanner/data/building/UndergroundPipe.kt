@@ -30,6 +30,10 @@ data class UndergroundPipe(override val place: Place, override var liquid: Strin
         )
     }
 
+    fun alongX(): Boolean {
+        return direction == 0 || direction == 4
+    }
+
     override fun getLiquidConnections(): List<LiquidConnection> {
         return listOf(LiquidConnection(place.start, place.start.move(direction), liquid, Direction.fromInt(direction)))
     }

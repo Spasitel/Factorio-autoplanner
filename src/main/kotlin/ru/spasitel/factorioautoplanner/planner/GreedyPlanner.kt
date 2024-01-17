@@ -61,7 +61,7 @@ class GreedyPlanner {
                 for (withInputChestState in withInputChest) {
                     val withOutputChest = addChests(withInputChestState, building, BuildingType.PROVIDER_CHEST)
                     for (withOutputChestState in withOutputChest) {
-                        if (!withOutputChestState.freeCells.value.contains(forBuild))
+                        if (!withOutputChestState.freeCells.contains(forBuild))
                             newStates.add(withOutputChestState)
                     }
                 }
@@ -86,6 +86,12 @@ class GreedyPlanner {
                 continue
             }
             if (field != null && !Utils.isBetween(chest.second, field.chestField)) continue
+            if (field != null && withoutChests.map.containsKey(chest.second) &&
+                withoutChests.map[chest.second]!! is ProviderChest &&
+                (withoutChests.map[chest.second] as ProviderChest).items.first() in TechnologyTreePlanner.base
+            ) {
+                continue
+            }
 
             val inserterBuilding = Utils.getBuilding(
                 chest.first,
@@ -139,7 +145,7 @@ class GreedyPlanner {
     private fun getClosestPlace(state: State): Cell? {
         var minDistance = Int.MAX_VALUE
         var closestStart: Cell? = null
-        for (start in state.freeCells.value) {
+        for (start in state.freeCells) {
             val distance = getDistance(state, start)
             if (distance < minDistance) {
                 minDistance = distance

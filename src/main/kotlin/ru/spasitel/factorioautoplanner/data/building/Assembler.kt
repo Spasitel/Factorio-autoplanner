@@ -9,13 +9,13 @@ data class Assembler(override val place: Place, val direction: Int?, val recipe:
         val item = if (recipe in TechnologyTreePlanner.productivity_module_limitation)
             "productivity-module-3"
         else "speed-module-3"
-
+        val fixedRecipe = recipe.split("#")[0]
         return if (direction == null)
             String.format(
                 Locale.US,
                 JSON,
                 number,
-                recipe,
+                fixedRecipe,
                 place.start.x + type.size / 2.0,
                 place.start.y + +type.size / 2.0,
                 item
@@ -25,7 +25,7 @@ data class Assembler(override val place: Place, val direction: Int?, val recipe:
                 Locale.US,
                 JSON_DIR,
                 number,
-                recipe,
+                fixedRecipe,
                 place.start.x + type.size / 2.0,
                 place.start.y + +type.size / 2.0,
                 direction,
@@ -36,7 +36,7 @@ data class Assembler(override val place: Place, val direction: Int?, val recipe:
     override val type: BuildingType
         get() = BuildingType.ASSEMBLER
     override val symbol: Char
-        get() = 'a'
+        get() = 'A'
 
     companion object {
         private const val JSON_DIR =

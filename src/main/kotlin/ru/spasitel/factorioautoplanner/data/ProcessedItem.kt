@@ -11,7 +11,11 @@ data class ProcessedItem(
     val usedIn: MutableMap<String, Double>,
     val ingredients: MutableMap<String, Double>,
     val buildingType: BuildingType,
-    private val totalProductivity: Double
+    /**
+     * Время на 1 единицу продукции.
+     * Или суммарная продуктивность производства для 1 единицы продукции в секунду
+     */
+    val totalProductivity: Double
 ) {
     constructor(
         item: String,
@@ -24,6 +28,9 @@ data class ProcessedItem(
         calculateTotalProductivity(recipe, item)
     )
 
+    /**
+     * Суммарная продуктивность производства для нужного количества продукции в секунду
+     */
     fun productivity() = totalProductivity * amount
 
     companion object {
@@ -37,6 +44,10 @@ data class ProcessedItem(
 
                 BuildingType.SMELTER -> {
                     result /= 2
+                }
+
+                BuildingType.LAB -> {
+                    result /= 3.5
                 }
 
                 else -> {}
@@ -64,9 +75,12 @@ data class ProcessedItem(
         }
 
         private fun buildingType(recipe: RecipesDTOItem) =
-            if (recipe.category == "chemistry") BuildingType.CHEMICAL_PLANT else
-                if (recipe.name == "stone-brick") BuildingType.SMELTER else
-                    if (recipe.name == "rocket-part") BuildingType.ROCKET_SILO else
-                        BuildingType.ASSEMBLER
+            when {
+                recipe.category == "chemistry" -> BuildingType.CHEMICAL_PLANT
+                recipe.name == "stone-brick" -> BuildingType.SMELTER
+                recipe.name == "space-science-pack" -> BuildingType.ROCKET_SILO
+                recipe.name == "science-approximation" -> BuildingType.LAB
+                else -> BuildingType.ASSEMBLER
+            }
     }
 }

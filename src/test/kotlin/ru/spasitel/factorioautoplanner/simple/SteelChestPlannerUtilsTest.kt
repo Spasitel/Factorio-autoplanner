@@ -6,7 +6,7 @@ import ru.spasitel.factorioautoplanner.simple.ChestPlannerUtils.addMandatoryChes
 import ru.spasitel.factorioautoplanner.simple.building.Beacon
 import ru.spasitel.factorioautoplanner.simple.building.Smelter
 
-internal class ChestPlannerUtilsTest {
+internal class SteelChestPlannerUtilsTest {
     @Test
     fun testMandatory() {
         var st: State? = State(HashSet(), 0.0, 0, Array(SimpleMain.SIZE) { arrayOfNulls(SimpleMain.SIZE) })

@@ -1,5 +1,6 @@
 package ru.spasitel.factorioautoplanner.planner
 
+import io.github.oshai.kotlinlogging.KotlinLogging
 import ru.spasitel.factorioautoplanner.data.*
 import ru.spasitel.factorioautoplanner.data.building.*
 import java.util.*
@@ -7,6 +8,7 @@ import kotlin.math.abs
 import kotlin.math.sign
 
 class OilPlanner {
+    private val logger = KotlinLogging.logger {}
 
     fun planeOil(recipeTree: Map<String, ProcessedItem>, field: Field, mid: Double): State? {
         if (recipeTree["petroleum-gas"] == null) return field.state
@@ -23,7 +25,7 @@ class OilPlanner {
             field.state.buildings.first { it.type == BuildingType.STORAGE_TANK && (it as StorageTank).liquid == "crude-oil" }.place.start
         val cell = calculateRefineryPosition(field, oilStorage)
         if (cell == null) {
-            println("No place for refinery")
+            logger.info { "No place for refinery" }
             return null
         }
         val place = Place(Utils.cellsForBuilding(cell, BuildingType.OIL_REFINERY.size), cell)
@@ -62,11 +64,17 @@ class OilPlanner {
             val current = states.pollFirst() ?: return null
             count++
             //generate next steps
-            val next = calculateNext(current, liquid, connections, field, done)
-
+            val (newDone, next) = calculateNext(current, liquid, connections, field, done)
+            states.removeIf {
+                if (it.state.map[it.current]!! is UndergroundPipe) {
+                    newDone.contains(Pair(it.current, (it.state.map[it.current]!! as UndergroundPipe).direction))
+                } else {
+                    false
+                }
+            }
 
             if (states.size.div(1000) - (states.size + next.size).div(1000) != 0) {
-                println("A-star step $count, states size ${states.size}, current score ${current.score}, current penalty ${current.penalty}, current distance ${current.distance}")
+                logger.info { "A-star step $count, states size ${states.size}, current score ${current.score}, current penalty ${current.penalty}, current distance ${current.distance}" }
             }
             //check if we have connection cell
             next.forEach {
@@ -128,7 +136,7 @@ class OilPlanner {
                     building.direction == direction.turnRight().direction ||
                             building.direction == direction.turnLeft().direction)
         ) {
-            //todo если прямто тут есть труба, то надо ее удалить
+            //если прямто тут есть труба, то надо ее удалить
             var result = state.removeBuilding(building)
             result = result.addBuilding(Utils.getBuilding(to, BuildingType.PIPE, liquid = liquid)) ?: return null
             result =
@@ -207,8 +215,9 @@ class OilPlanner {
         connections: Set<Cell>,
         field: Field,
         done: HashSet<Pair<Cell, Int>>
-    ): Set<AStarState> {
+    ): Pair<Set<Pair<Cell, Int>>, Set<AStarState>> {
         val next = HashSet<AStarState>()
+        val newDone = HashSet<Pair<Cell, Int>>()
         val cell = current.current
         val directions = if (current.state.map[cell]?.type == BuildingType.UNDERGROUND_PIPE) {
             setOf((current.state.map[cell] as UndergroundPipe).direction)
@@ -249,12 +258,21 @@ class OilPlanner {
                                         enter.map[nextExit]!!.type == BuildingType.PIPE ||
                                         enter.map[nextExit]!!.type == BuildingType.STORAGE_TANK)
                     ) {
+
                         val undergroundExit = Utils.getBuilding(
                             exit,
                             BuildingType.UNDERGROUND_PIPE,
                             liquid = liquid,
                             direction = direction
                         )
+
+                        if (enter.map[nextExit] != null && enter.map[nextExit]!!.type == BuildingType.UNDERGROUND_PIPE
+                            && (enter.map[nextExit] as UndergroundPipe).alongX() == (undergroundExit as UndergroundPipe).alongX()
+                            && (enter.map[nextExit] as UndergroundPipe).liquid != undergroundExit.liquid
+                        ) {
+                            break
+                        }
+
                         enter.addBuilding(undergroundExit)?.let {
                             next.add(
                                 AStarState(
@@ -270,21 +288,28 @@ class OilPlanner {
                 }
             }
             done.add(Pair(nextCell, direction))
+            newDone.add(Pair(nextCell, direction))
         }
-        return next
+        return Pair(newDone, next)
     }
 
     private fun calculatePenalty(pipe: Building, field: Field): Double {
-        val start = pipe.place.start
-        for (i in -3..7) {
-            if (Utils.isBetween(start, field.chestField, i)) {
-                return 30.0 - i
-            }
+        return if (pipe.type == BuildingType.PIPE) {
+            1.0
+        } else {
+            2.0
         }
-        if (Utils.isBetween(start, field.electricField)) {
-            return 1.5
-        }
-        return 0.5
+
+//        val start = pipe.place.start
+//        for (i in -3..7) {
+//            if (Utils.isBetween(start, field.chestField, i)) {
+//                return 30.0 - i
+//            }
+//        }
+//        if (Utils.isBetween(start, field.electricField)) {
+//            return 1.5
+//        }
+//        return 0.5
     }
 
     private fun calculateDistance(start: Cell, connections: Set<Cell>): Double {
@@ -350,7 +375,12 @@ class OilPlanner {
         return null
     }
 
-    private fun calculateOil(recipeTree: Map<String, ProcessedItem>, mid: Double): Triple<Double, Double, Double> {
+    /**
+     * @return oil - потребление нефти,
+     * heavy - тежелая, переребатываемая в легкую,
+     * light - легкая, перерабатываемая в газ
+     */
+    fun calculateOil(recipeTree: Map<String, ProcessedItem>, mid: Double): Triple<Double, Double, Double> {
         val heavy = recipeTree["heavy-oil"]?.amount ?: 0.0
         val light = recipeTree["light-oil"]?.amount ?: 0.0
         val petroleum = recipeTree["petroleum-gas"]?.amount ?: throw Exception("No petroleum-gas in recipe tree")

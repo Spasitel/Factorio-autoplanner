@@ -3380,8 +3380,8 @@
     ]
   },
   {
-    "name": "rocket-part",
-    "energy_required": 3,
+    "name": "space-science-pack",
+    "energy_required": 1500,
     "category": "rocket-building",
     "result": "space-science-pack",
     "result_count": 5000,
@@ -3646,6 +3646,42 @@
       {
         "name": "pipe",
         "amount": 20
+      }
+    ]
+  },
+  {
+    "name": "science-approximation",
+    "energy_required": 120,
+    "result": "science-approximation",
+    "result_count": 2,
+    "ingredients": [
+      {
+        "name": "automation-science-pack",
+        "amount": 2
+      },
+      {
+        "name": "logistic-science-pack",
+        "amount": 2
+      },
+      {
+        "name": "chemical-science-pack",
+        "amount": 2
+      },
+      {
+        "name": "utility-science-pack",
+        "amount": 2
+      },
+      {
+        "name": "space-science-pack",
+        "amount": 2
+      },
+      {
+        "name": "production-science-pack",
+        "amount": 1
+      },
+      {
+        "name": "military-science-pack",
+        "amount": 1
       }
     ]
   }

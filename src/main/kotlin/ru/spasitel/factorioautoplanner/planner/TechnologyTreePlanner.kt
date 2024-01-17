@@ -1,10 +1,12 @@
 package ru.spasitel.factorioautoplanner.planner
 
 import com.google.gson.Gson
+import io.github.oshai.kotlinlogging.KotlinLogging
 import ru.spasitel.factorioautoplanner.data.ProcessedItem
 import ru.spasitel.factorioautoplanner.data.auto.RecipesDTO
 import ru.spasitel.factorioautoplanner.data.auto.RecipesDTOItem
 import ru.spasitel.factorioautoplanner.data.building.BuildingType
+import java.util.*
 
 class TechnologyTreePlanner {
 
@@ -121,14 +123,43 @@ class TechnologyTreePlanner {
         recipes: RecipesDTO, ingredient: String
     ): RecipesDTOItem {
         if (recipes.filter { it.result == ingredient }.size > 1) {
-            println("Multi recipe for $ingredient")
+            logger.info { "Multi recipe for $ingredient" }
         }
         return recipes.first { it.result == ingredient }
     }
 
     companion object {
+        private val logger = KotlinLogging.logger {}
+
+        @JvmStatic
+        fun main(args: Array<String>) {
+            val tree = scienceRoundTree()
+            val amountMap = TreeMap<Double, Pair<String, String>>()
+            tree.forEach { (key, value) ->
+                value.ingredients.filter { it.key !in setOf("petroleum-gas", "lubricant", "sulfuric-acid") }
+                    .forEach { (ingredient, amount) ->
+                        var amount1 = amount
+                        while (amountMap[amount1] != null) {
+
+                            amount1 += 0.0001
+                        }
+                        amountMap[amount1] = Pair(key, ingredient)
+
+                    }
+            }
+            logger.info { amountMap }
+
+            tree.forEach { (key, value) ->
+                val productivity = value.productivity()
+                val prod = if (value.recipe.name in productivity_module_limitation) 0.4 else 3.0
+                val buildings = productivity.div(prod)
+                logger.info { "$key:\t $buildings \t$productivity \t${value.amount} " }
+            }
+        }
+
+
         val EMPTY_RECIPE = RecipesDTOItem(0.0, emptyList(), null, "empty", null, null, null)
-        private val base = setOf(
+        val base = setOf(
             "iron-plate",
             "copper-plate",
             "steel-plate",
@@ -139,46 +170,40 @@ class TechnologyTreePlanner {
             "heavy-oil",
             "light-oil",
             "petroleum-gas",
-            "sulfuric-acid",
-            "sulfur",
-            "lubricant",
-            "rocket-fuel",
+//            "sulfuric-acid",
+//            "sulfur",
+//            "lubricant",
+//            "rocket-fuel",
         )
 
         fun scienceRoundTree(): Map<String, ProcessedItem> {
             val recipes = TechnologyTreePlanner().readRecipesFromFile()
-            val toBuildMilitary = mapOf(
-                "automation-science-pack" to 1.0,
-                "logistic-science-pack" to 1.0,
-                "military-science-pack" to 0.5,
-                "chemical-science-pack" to 1.0,
-                "production-science-pack" to 0.5,
-                "utility-science-pack" to 1.0,
-                "space-science-pack" to 1.0
+            val toBuild = mapOf(
+                "science-approximation" to 1.0
             )
-            return TechnologyTreePlanner().createRecipeTree(base, toBuildMilitary, recipes)
+            return TechnologyTreePlanner().createRecipeTree(base, toBuild, recipes)
         }
 
         fun scienceTree(): Map<String, ProcessedItem> {
             val recipes = TechnologyTreePlanner().readRecipesFromFile()
             val toBuildMilitary = mapOf(
-                "automation-science-pack" to 100.0,
-                "logistic-science-pack" to 100.0,
-                "military-science-pack" to 100.0,
-                "chemical-science-pack" to 100.0,
-//                "production-science-pack" to 100.0,
-                "utility-science-pack" to 100.0,
-                "space-science-pack" to 100.0
+                "automation-science-pack" to 1.0,
+                "logistic-science-pack" to 1.0,
+                "military-science-pack" to 1.0,
+                "chemical-science-pack" to 1.0,
+//                "production-science-pack" to 1.0,
+                "utility-science-pack" to 1.0,
+                "space-science-pack" to 1.0
             )
             val treeMilitary = TechnologyTreePlanner().createRecipeTree(base, toBuildMilitary, recipes)
             val toBuildProduction = mapOf(
-                "automation-science-pack" to 100.0,
-                "logistic-science-pack" to 100.0,
-//                "military-science-pack" to 100.0,
-                "chemical-science-pack" to 100.0,
-                "production-science-pack" to 100.0,
-                "utility-science-pack" to 100.0,
-                "space-science-pack" to 100.0
+                "automation-science-pack" to 1.0,
+                "logistic-science-pack" to 1.0,
+//                "military-science-pack" to 1.0,
+                "chemical-science-pack" to 1.0,
+                "production-science-pack" to 1.0,
+                "utility-science-pack" to 1.0,
+                "space-science-pack" to 1.0
             )
             val treeProduction = TechnologyTreePlanner().createRecipeTree(base, toBuildProduction, recipes)
             val result = HashMap<String, ProcessedItem>()
@@ -218,6 +243,8 @@ class TechnologyTreePlanner {
             "iron-plate",
             "copper-plate",
             "steel-plate",
+            "automation-science-pack",
+            "logistic-science-pack",
         )
 
         val productivity_module_limitation = setOf(
@@ -237,10 +264,7 @@ class TechnologyTreePlanner {
             "nuclear-fuel",
             "nuclear-fuel-reprocessing",
             "rocket-control-unit",
-            "rocket-part",
             "space-science-pack",
-            "automation-science-pack",
-            "logistic-science-pack",
             "chemical-science-pack",
             "military-science-pack",
             "production-science-pack",

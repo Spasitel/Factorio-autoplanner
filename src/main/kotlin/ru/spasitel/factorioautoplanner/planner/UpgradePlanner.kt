@@ -27,7 +27,7 @@ class UpgradePlanner {
         while (attempts < attemptsLimit) {
             val deletedSet =
                 TreeSet { o1: State, o2: State ->
-                    val freeDiff = o1.freeCells.value.size - o2.freeCells.value.size
+                    val freeDiff = o1.freeCells.size - o2.freeCells.size
                     val valueDiff = (o1.score.value - o2.score.value).sign.toInt()
                     if (freeDiff != 0) freeDiff
                     else if (valueDiff != 0) valueDiff
@@ -67,11 +67,11 @@ class UpgradePlanner {
     private fun printCurrentState(date: Date, size: Int, newState: State) {
         val sdf = SimpleDateFormat("dd/M/yyyy hh:mm:ss")
         val currentDate = sdf.format(date)
-        println("$currentDate == $attempts, size: $size, free cells: ${newState.freeCells.value.size}")
+        println("$currentDate == $attempts, size: $size, free cells: ${newState.freeCells.size}")
     }
 
     private fun findBestReplacements(state: State): State {
-        val freeCells = state.freeCells.value
+        val freeCells = state.freeCells
         val closestFreeCell = freeCells.minByOrNull { it.x * state.size.y + it.y } ?: return state
         var localBest = state
         var localBestScore = state.score.value
@@ -80,7 +80,7 @@ class UpgradePlanner {
             for (newState in newStates) {
                 attempts++
                 var current = newState
-                if (newState.freeCells.value.isNotEmpty()) {
+                if (newState.freeCells.isNotEmpty()) {
                     current = findBestReplacements(newState)
                 }
                 if (current.score.value > localBestScore) {
