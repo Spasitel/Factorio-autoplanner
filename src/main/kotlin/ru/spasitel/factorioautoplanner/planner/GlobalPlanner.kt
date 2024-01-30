@@ -25,8 +25,8 @@ class GlobalPlanner {
         Utils.checkLiquids = true
 
         var double = false
-        var min = 4.5
-        var max = 6.0
+        var min = 3.5
+        var max = 4.5
         var best: State? = null
         while (max - min > 0.05) {
             val mid = (max + min) / 2
@@ -156,7 +156,13 @@ class GlobalPlanner {
             var next: State? = null
             var nextScore: Double? = null
             if (score > 0) {
-                next = planeBeacon(current, field, unit)
+                next = planeBeacon(current, field, unit, recipeTree)
+                if (next != null && (unit == "processing-unit" || unit == "electronic-circuit")) {
+                    next = planeBeacon(next, field, unit, recipeTree)
+                }
+                if (next != null && unit == "processing-unit") {
+                    next = planeBeacon(next, field, unit, recipeTree)
+                }
                 nextScore = next?.let { scoreManager.calculateScoreForItem(it, unit, recipeTree) }
             }
             val starts = placesForItem(current, field, unit, recipeTree)
@@ -182,9 +188,12 @@ class GlobalPlanner {
                 logger.info { "No solution found for $unit" }
                 return null
             }
+            val added =
+                next.buildings.filter { it.type == BuildingType.BEACON || it.type == BuildingType.ASSEMBLER || it.type == BuildingType.SMELTER }
+                    .minus(current.buildings)
             current = next
             score = nextScore!!
-            logger.info { "Step $unit, score: $score:" }
+            logger.info { "Step $unit, score: $score:, added: $added" }
             logger.trace { Utils.convertToJson(current) }
         }
         return current
@@ -552,28 +561,52 @@ class GlobalPlanner {
     }
 
 
-    private fun planeBeacon(current: State, field: Field, unit: String): State? {
-        //TODO blue and green - calculate which in chain is worse
+    private fun planeBeacon(
+        current: State,
+        field: Field,
+        unit: String,
+        recipeTree: Map<String, ProcessedItem>
+    ): State? {
         var score = 0.0
         var best: State? = null
 
-        scoreManager.buildingsForUnit(unit, current)
-            .forEach { assembler ->
-                current.freeCells.filter { it.maxDistanceTo(assembler.place.start) < 6 }.forEach { beaconStart ->
-                    val beacon = Utils.getBuilding(beaconStart, BuildingType.BEACON)
-                    val newState = current.addBuilding(beacon)
-                    if (newState != null) {
-                        val newScore = scoreManager.calculateScoreForBuilding(Pair(newState, beacon), unit)
-                        if (best == null || newScore > score
-                            || (newScore == score && newState.freeCells.size > best!!.freeCells.size)
-                        ) {
-                            score = newScore
-                            best = newState
-                        }
+        val buildingsForUnit = when (unit) {
+            //blue and green - calculate which in chain is worse
+            "processing-unit", "electronic-circuit" -> findLeastPerformed(current, unit)
+            else -> scoreManager.buildingsForUnit(unit, current)
+        }
+
+        buildingsForUnit.forEach { assembler ->
+            current.freeCells.filter { it.maxDistanceTo(assembler.place.start) < 6 }.forEach { beaconStart ->
+                val beacon = Utils.getBuilding(beaconStart, BuildingType.BEACON)
+                val newState = current.addBuilding(beacon)
+                if (newState != null) {
+                    val newScore =
+                        if (unit == "processing-unit" || unit == "electronic-circuit")
+                            scoreManager.calculateScoreForItem(newState, unit, recipeTree) else
+                            scoreManager.calculateScoreForBuilding(Pair(newState, beacon), unit)
+                    if (best == null || newScore > score
+                        || (newScore == score && newState.freeCells.size > best!!.freeCells.size)
+                    ) {
+                        score = newScore
+                        best = newState
                     }
                 }
             }
+        }
         return best
+    }
+
+    private fun findLeastPerformed(current: State, unit: String): List<Building> {
+        val result = mutableListOf<Building>()
+        val buildings =
+            current.buildings.filter { it.type == BuildingType.ASSEMBLER && (it as Assembler).recipe == unit }
+        buildings.forEach {
+            val score = scoreManager.calculateScoreForMultiBuildings(current, it, unit)
+            result.add(score.second)
+        }
+
+        return result
     }
 
     private fun calculateNextItem(recipeTree: Map<String, ProcessedItem>, done: Set<String>): String {
@@ -688,10 +721,19 @@ class GlobalPlanner {
                 }
                 val recipe = recipeTree[item.split("#")[0]]!!
                 for (ingredient in recipe.ingredients) {
-                    if (ingredient.key in setOf("petroleum-gas", "lubricant", "sulfuric-acid")) {
+                    if (ingredient.key in setOf("petroleum-gas", "lubricant", "sulfuric-acid", "water")) {
                         continue
                     }
-                    //todo green and blue - do not request what made in chain
+                    //green and blue - do not request what made in chain
+                    if (ingredient.key == "electronic-circuit" && item == "processing-unit") {
+                        continue
+                    }
+                    if (ingredient.key == "copper-cable" && item.split("#")[0] == "electronic-circuit") {
+                        continue
+                    }
+                    if (ingredient.key == "sulfur" && item == "sulfuric-acid") {
+                        continue
+                    }
                     val set = result.getOrDefault(ingredient.key, mutableSetOf())
                     val amount = calculateRequestAmount(source, state, recipeTree, item, ingredient.key)
                     set.add(Pair(request, amount))
@@ -781,8 +823,11 @@ class GlobalPlanner {
     }
 
     companion object {
+        private val log = KotlinLogging.logger {}
+
         @JvmStatic
         fun main(args: Array<String>) {
+            log.info { "Start" }
             val tree = TechnologyTreePlanner.scienceRoundTree()
             GlobalPlanner().planeGlobal(tree, BluePrintFieldExtractor.FIELD)
         }

@@ -1,13 +1,12 @@
 package ru.spasitel.factorioautoplanner.planner
 
+import io.github.oshai.kotlinlogging.KotlinLogging
 import ru.spasitel.factorioautoplanner.data.ProcessedItem
 import ru.spasitel.factorioautoplanner.data.State
-import ru.spasitel.factorioautoplanner.data.building.Assembler
-import ru.spasitel.factorioautoplanner.data.building.Building
-import ru.spasitel.factorioautoplanner.data.building.BuildingType
-import ru.spasitel.factorioautoplanner.data.building.ChemicalPlant
+import ru.spasitel.factorioautoplanner.data.building.*
 
 class ScoreManager {
+    private val logger = KotlinLogging.logger {}
 
     fun calculateScoreForItem(state: State, unit: String, recipeTree: Map<String, ProcessedItem>): Double {
         val recipe = recipeTree[unit]!!
@@ -20,10 +19,65 @@ class ScoreManager {
         state: State,
         productivity: Double
     ): Double {
-        //TODO: green and blue circuits
         val buildings = buildingsForUnit(unit, state)
-        val result = buildings.sumOf { calculateScoreForBuilding(Pair(state, it), unit) }
+        val result = if (unit in setOf("electronic-circuit", "processing-unit", "rocket-fuel")) {
+            buildings.sumOf { calculateScoreForMultiBuildings(state, it, unit).first }
+        } else {
+            buildings.sumOf { calculateScoreForBuilding(Pair(state, it), unit) }
+        }
         return result / productivity
+    }
+
+    fun calculateScoreForMultiBuildings(state: State, b: Building, unit: String): Pair<Double, Building> {
+        var building = b
+        var productivity = calculateScoreForBuilding(Pair(state, b), unit)
+        when (unit) {
+            "electronic-circuit" -> {
+                val inserter = state.buildings.filterIsInstance<Inserter>()
+                    .first { it.to() in building.place.cells && state.map[it.from()] is Assembler && (state.map[it.from()] as Assembler).recipe == "copper-cable#green" }
+                val cable = (state.map[inserter.from()] as Assembler)
+                val cableProductivity = calculateScoreForBuilding(Pair(state, cable), "copper-cable") * 0.93333332586
+                if (cableProductivity < productivity) {
+                    productivity = cableProductivity
+                    building = cable
+                }
+            }
+
+            "rocket-fuel" -> {
+                val inserter = state.buildings.filterIsInstance<Inserter>()
+                    .first { it.to() in building.place.cells && state.map[it.from()] is ChemicalPlant && (state.map[it.from()] as ChemicalPlant).recipe == "solid-fuel-from-light-oil" }
+                val cable = (state.map[inserter.from()] as ChemicalPlant)
+                val cableProductivity = calculateScoreForBuilding(Pair(state, cable), "solid-fuel-from-light-oil") * 1.2
+                if (cableProductivity < productivity) {
+                    productivity = cableProductivity
+                    building = cable
+                }
+            }
+
+            "processing-unit" -> {
+                val inserter = state.buildings.filterIsInstance<Inserter>()
+                    .first { it.to() in building.place.cells && state.map[it.from()] is Assembler && (state.map[it.from()] as Assembler).recipe == "electronic-circuit#blue" }
+                val green = (state.map[inserter.from()] as Assembler)
+                val greenProductivity = calculateScoreForBuilding(Pair(state, green), "electronic-circuit") * 1.4
+                if (greenProductivity < productivity) {
+                    productivity = greenProductivity
+                    building = green
+                }
+
+                val inserter2 = state.buildings.filterIsInstance<Inserter>()
+                    .first { it.to() in green.place.cells && state.map[it.from()] is Assembler && (state.map[it.from()] as Assembler).recipe == "copper-cable#blue" }
+                val cable = (state.map[inserter2.from()] as Assembler)
+                val cableProductivity = calculateScoreForBuilding(Pair(state, cable), "copper-cable") * 1.30666666
+                if (cableProductivity < productivity) {
+                    productivity = cableProductivity
+                    building = cable
+                }
+
+            }
+
+        }
+
+        return Pair(productivity, building)
     }
 
     fun buildingsForUnit(
@@ -121,6 +175,11 @@ class ScoreManager {
 
     fun calculateScore(greedy: State, recipeTree: Map<String, ProcessedItem>): Double {
         return recipeTree.keys.filter { it !in TechnologyTreePlanner.base }
-            .minOf { calculateScoreForItem(greedy, it, recipeTree) }
+            .minOf {
+                val score = calculateScoreForItem(greedy, it, recipeTree)
+                val buildings = buildingsForUnit(it, greedy).size
+                logger.debug { "For $it: buildings $buildings score $score" }
+                return@minOf score
+            }
     }
 }

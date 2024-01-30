@@ -37,10 +37,17 @@ data class Inserter(override val place: Place, val direction: Int, val kind: Str
     }
 
     fun to(): Cell {
-        return place.start.move(Direction.fromInt(direction).turnBack())
+        val back = Direction.fromInt(direction).turnBack()
+        if (kind == "long-handed-inserter") {
+            return place.start.move(back).move(back)
+        }
+        return place.start.move(back)
     }
 
     fun from(): Cell {
+        if (kind == "long-handed-inserter") {
+            return place.start.move(direction).move(direction)
+        }
         return place.start.move(direction)
     }
 

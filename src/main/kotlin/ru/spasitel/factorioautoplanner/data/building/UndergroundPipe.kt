@@ -12,10 +12,10 @@ data class UndergroundPipe(override val place: Place, override var liquid: Strin
 
     override val symbol: Char
         get() = when (direction) {
-            0 -> 'A'
-            2 -> '}'
-            4 -> 'V'
-            6 -> '{'
+            4 -> 'A'
+            6 -> '}'
+            0 -> 'V'
+            2 -> '{'
             else -> throw RuntimeException("Unknown direction $direction")
         }
 

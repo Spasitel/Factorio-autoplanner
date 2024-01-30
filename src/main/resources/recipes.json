@@ -3651,29 +3651,29 @@
   },
   {
     "name": "science-approximation",
-    "energy_required": 120,
+    "energy_required": 60,
     "result": "science-approximation",
-    "result_count": 2,
+    "result_count": 1,
     "ingredients": [
       {
         "name": "automation-science-pack",
-        "amount": 2
+        "amount": 1
       },
       {
         "name": "logistic-science-pack",
-        "amount": 2
+        "amount": 1
       },
       {
         "name": "chemical-science-pack",
-        "amount": 2
+        "amount": 1
       },
       {
         "name": "utility-science-pack",
-        "amount": 2
+        "amount": 1
       },
       {
         "name": "space-science-pack",
-        "amount": 2
+        "amount": 1
       },
       {
         "name": "production-science-pack",

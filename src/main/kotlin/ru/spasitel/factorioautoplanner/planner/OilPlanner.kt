@@ -250,6 +250,22 @@ class OilPlanner {
             )
             current.state.addBuilding(undergroundPipe)?.let { enter ->
                 var exit = undergroundPipe.place.start.move(direction)
+                var exitCheck = undergroundPipe.place.start
+                for (length in 1..10) {
+                    exitCheck = exitCheck.move(Direction.fromInt(direction).turnBack().direction)
+
+                    if (enter.map[exitCheck] != null && enter.map[exitCheck]!!.type == BuildingType.UNDERGROUND_PIPE
+                        && (enter.map[exitCheck] as UndergroundPipe).alongX() == (undergroundPipe as UndergroundPipe).alongX()
+                    ) {
+                        if ((enter.map[exitCheck] as UndergroundPipe).direction == undergroundPipe.direction) {
+                            return@let
+                        } else {
+                            break
+                        }
+                    }
+
+                }
+
                 for (length in 1..10) {
                     val nextExit = exit.move(direction)
                     if (!done.contains(Pair(exit, direction)) && (
@@ -268,8 +284,11 @@ class OilPlanner {
 
                         if (enter.map[nextExit] != null && enter.map[nextExit]!!.type == BuildingType.UNDERGROUND_PIPE
                             && (enter.map[nextExit] as UndergroundPipe).alongX() == (undergroundExit as UndergroundPipe).alongX()
-                            && (enter.map[nextExit] as UndergroundPipe).liquid != undergroundExit.liquid
+//                            && (enter.map[nextExit] as UndergroundPipe).liquid != undergroundExit.liquid
                         ) {
+//                            if ((enter.map[nextExit] as UndergroundPipe).liquid == undergroundExit.liquid) {
+//                                logger.info { "Same liquid" }
+//                            }
                             break
                         }
 
@@ -361,7 +380,7 @@ class OilPlanner {
                 }
             }
         }
-        //todo
+
 //        for (x in 0 until field.chestField.first.x - 11) {
 //            for (y in start.y downTo 0) {
 //                val startX = if (y == start.y) start.x else 0
