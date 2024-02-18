@@ -10,14 +10,14 @@ import java.text.SimpleDateFormat
 import java.util.*
 import kotlin.math.sign
 
-class UpgradePlanner {
+class UpgradeManager {
 
     /**
      * Remove close buildings and try to replace them with better ones
      * @param state current state
      * @param attemptsLimit number of attempts to upgrade
      */
-    fun upgrade(state: State, attemptsLimit: Int): State {
+    fun upgradeByReplacement(state: State, attemptsLimit: Int): State {
         var best = state
         attempts = 0
 
@@ -115,6 +115,7 @@ class UpgradePlanner {
         return result
     }
 
+
     private fun isChestUseless(building: Building, best: State): Boolean {
         val start = building.place.start
         val up = start.up()
@@ -183,6 +184,7 @@ class UpgradePlanner {
         }
         return null
     }
+
 
     companion object {
         const val DELTA = 0.01

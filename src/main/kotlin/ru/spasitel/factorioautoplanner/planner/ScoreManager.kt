@@ -173,13 +173,15 @@ class ScoreManager {
         }
     }
 
-    fun calculateScore(greedy: State, recipeTree: Map<String, ProcessedItem>): Double {
+    fun calculateScore(greedy: State, recipeTree: Map<String, ProcessedItem>, log: Boolean): Pair<Double, String> {
         return recipeTree.keys.filter { it !in TechnologyTreePlanner.base }
-            .minOf {
+            .map {
                 val score = calculateScoreForItem(greedy, it, recipeTree)
-                val buildings = buildingsForUnit(it, greedy).size
-                logger.debug { "For $it: buildings $buildings score $score" }
-                return@minOf score
-            }
+                if (log) {
+                    val buildings = buildingsForUnit(it, greedy).size
+                    logger.debug { "For $it: buildings $buildings score $score" }
+                }
+                Pair(score, it)
+            }.minBy { it.first }
     }
 }

@@ -14,6 +14,7 @@ import kotlin.math.sqrt
 class GlobalPlanner {
     private val logger = KotlinLogging.logger {}
     private val scoreManager = ScoreManager()
+    private val upgradeManager = GlobalUpgradeManager(this)
 
     fun planeGlobal(recipeTree: Map<String, ProcessedItem>, fieldBlueprint: String) {
         val decodeField = Formatter.decode(fieldBlueprint)
@@ -25,8 +26,8 @@ class GlobalPlanner {
         Utils.checkLiquids = true
 
         var double = false
-        var min = 3.5
-        var max = 4.5
+        var min = 4.45
+        var max = 4.55
         var best: State? = null
         while (max - min > 0.05) {
             val mid = (max + min) / 2
@@ -41,7 +42,7 @@ class GlobalPlanner {
             val withRoboports = greedy?.let { planeRoboports(it, field, recipeTree) }
 
             if (withRoboports != null) {
-                min = scoreManager.calculateScore(withRoboports, recipeTree)
+                min = scoreManager.calculateScore(withRoboports, recipeTree, true).first
                 best = withRoboports
                 if (double) {
                     max = min * 3
@@ -117,19 +118,22 @@ class GlobalPlanner {
     }
 
     private fun planeSpecial(recipeTree: Map<String, ProcessedItem>, field: Field, mid: Double): State? {
+        val delta = 0.5
         val processors = planeUnit(
             field.state,
             field,
             recipeTree,
-            mid,
+            mid + delta,
             "processing-unit",
-            ::stepProcessingUnit
+            ::stepProcessingUnit,
+            limit = 0
         ) ?: return null
         val circuits =
-            planeUnit(processors, field, recipeTree, mid, "electronic-circuit", ::stepCircuits) ?: return null
-        val batteries = planeUnit(circuits, field, recipeTree, mid, "battery", ::stepBattery) ?: return null
+            planeUnit(processors, field, recipeTree, mid + delta, "electronic-circuit", ::stepCircuits) ?: return null
+        val batteries = planeUnit(circuits, field, recipeTree, mid + delta, "battery", ::stepBattery) ?: return null
         val engines =
-            planeUnit(batteries, field, recipeTree, mid, "electric-engine-unit", ::stepElectricEngine) ?: return null
+            planeUnit(batteries, field, recipeTree, mid + delta, "electric-engine-unit", ::stepElectricEngine)
+                ?: return null
         return engines
     }
 
@@ -146,43 +150,24 @@ class GlobalPlanner {
             field: Field,
             recipeTree: Map<String, ProcessedItem>,
             unit: String
-        ) -> Pair<State?, Double?>
+        ) -> Pair<State?, Double?>,
+        limit: Int = 5
     ): State? {
         var score = scoreManager.calculateScoreForItem(state, unit, recipeTree)
         logger.info { "Start $unit, score: $score" }
         var current = state
         val scip: MutableSet<Cell> = mutableSetOf()
         while (score < mid) {
-            var next: State? = null
-            var nextScore: Double? = null
-            if (score > 0) {
-                next = planeBeacon(current, field, unit, recipeTree)
-                if (next != null && (unit == "processing-unit" || unit == "electronic-circuit")) {
-                    next = planeBeacon(next, field, unit, recipeTree)
-                }
-                if (next != null && unit == "processing-unit") {
-                    next = planeBeacon(next, field, unit, recipeTree)
-                }
-                nextScore = next?.let { scoreManager.calculateScoreForItem(it, unit, recipeTree) }
-            }
-            val starts = placesForItem(current, field, unit, recipeTree)
-            for (start in starts) {
-                if (scip.contains(start)) {
-                    continue
-                }
-                // sort by score
-                logger.info { "Trying $unit from $start" }
-                val pair = stepUnit(start, current, field, recipeTree, unit)
-                if (pair.first == null) {
-                    scip.add(start)
-                    continue
-                }
-                if (next == null || pair.second!! > nextScore!!) {
-                    next = pair.first
-                    nextScore = pair.second
-                }
-                break
-            }
+            val (next: State?, nextScore: Double?) = planeSingleStep(
+                score,
+                current,
+                field,
+                unit,
+                recipeTree,
+                scip,
+                stepUnit,
+                limit = limit
+            )
 
             if (next == null) {
                 logger.info { "No solution found for $unit" }
@@ -197,6 +182,61 @@ class GlobalPlanner {
             logger.trace { Utils.convertToJson(current) }
         }
         return current
+    }
+
+    fun planeSingleStep(
+        score: Double,
+        current: State,
+        field: Field,
+        unit: String,
+        recipeTree: Map<String, ProcessedItem>,
+        scip: MutableSet<Cell>,
+        stepUnit: (start: Cell, current: State, field: Field, recipeTree: Map<String, ProcessedItem>, unit: String) -> Pair<State?, Double?>,
+        limit: Int = 10,
+        special: Boolean = false
+    ): Pair<State?, Double?> {
+        var next: State? = null
+        var nextScore: Double? = null
+        if (score > 0) {
+            next = planeBeacon(current, field, unit, recipeTree)
+            if (next != null && (unit == "processing-unit" || unit == "electronic-circuit")) {
+                next = planeBeacon(next, field, unit, recipeTree)
+            }
+            if (next != null && unit == "processing-unit") {
+                next = planeBeacon(next, field, unit, recipeTree)
+            }
+            nextScore = next?.let { scoreManager.calculateScoreForItem(it, unit, recipeTree) }
+        }
+        if (special) {
+            return Pair(next, nextScore)
+        }
+        val starts = placesForItem(current, field, unit, recipeTree)
+        var count = 0
+        for (start in starts) {
+            if (scip.contains(start)) {
+                continue
+            }
+            // sort by score
+            logger.info { "Trying $unit from $start" }
+            val pair = stepUnit(start, current, field, recipeTree, unit)
+            if (pair.first == null) {
+                scip.add(start)
+                continue
+            }
+            if (next == null
+                || pair.second!! > nextScore!!
+                || (pair.second == nextScore && pair.first!!.freeCells.size > next.freeCells.size)
+                || (pair.second == nextScore && pair.first!!.freeCells.size == next.freeCells.size && pair.first!!.emptyCountScore > next.emptyCountScore)
+            ) {
+                next = pair.first
+                nextScore = pair.second
+            }
+            count++
+            if (count > limit) {
+                break
+            }
+        }
+        return Pair(next, nextScore)
     }
 
     private fun stepElectricEngine(
@@ -557,6 +597,11 @@ class GlobalPlanner {
             return bSize.compareTo(aSize)
         }
 
+        val aFreeScore = a.first.emptyCountScore
+        val bFreeScore = b.first.emptyCountScore
+        if (aFreeScore != bFreeScore) {
+            return bFreeScore.compareTo(aFreeScore)
+        }
         return a.hashCode().compareTo(b.hashCode())
     }
 
@@ -625,7 +670,7 @@ class GlobalPlanner {
         return planeUnit(state, field, recipeTree, mid, item, ::stepUnit)
     }
 
-    private fun stepUnit(
+    fun stepUnit(
         start: Cell,
         current: State,
         field: Field,
@@ -815,6 +860,10 @@ class GlobalPlanner {
 
 
     private fun planeUpgrade(recipeTree: Map<String, ProcessedItem>, field: Field, best: State): State {
+        //upgrade productivity
+        upgradeManager.upgradeProductivity(best, recipeTree, field)
+        //upgrade robots
+        //remove roboports?
         TODO("Not yet implemented") //Remove 1 or 2 buildings and replace with better
     }
 

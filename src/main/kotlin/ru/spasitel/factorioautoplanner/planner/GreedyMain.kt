@@ -18,7 +18,7 @@ object GreedyMain {
         start = start?.addBuilding(Utils.getBuilding(Cell(SIZE - 1, SIZE - 1), BuildingType.EMPTY))
         val greedy = GreedyPlanner().greedy(start!!, listOf(BuildingType.SMELTER, BuildingType.BEACON))
         Utils.printBest(greedy)
-        UpgradePlanner().upgrade(greedy, Int.MAX_VALUE)
+        UpgradeManager().upgradeByReplacement(greedy, Int.MAX_VALUE)
     }
 
 }

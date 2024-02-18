@@ -11,9 +11,49 @@ data class State(
     val map: Map<Cell, Building>,
     val size: Cell,
     val performanceMap: Map<Cell, Int> = HashMap(),
-    val freeCells: Set<Cell> = allCells(size)
+    val freeCells: Set<Cell> = allCells(size),
+    val emptyCountScore: Int = (size.x - 1) * (size.y - 1) * 32 + (size.x + size.y - 2) * 16
 ) {
-
+    /*
+        val emptyScore: Lazy<Int> = lazy {
+            val scoreMap: MutableMap<Cell, Int> = HashMap()
+            var result = 0
+            for (x in 0 until size.x) {
+                for (y in 0 until size.y) {
+                    val cell = Cell(x, y)
+                    if (map[cell] == null) {
+                        var current = 0
+                        if (map[cell.right()] == null) {
+                            current++
+                        }
+                        if (map[cell.down()] == null) {
+                            current++
+                        }
+                        if (map[cell.left()] == null) {
+                            current++
+                        }
+                        if (map[cell.up()] == null) {
+                            current++
+                        }
+                        if (current != 0) {
+                            scoreMap[cell] = current
+                        }
+                    }
+                }
+            }
+            for (cell in scoreMap.keys) {
+                if (scoreMap[cell.right()] != null)
+                    result += scoreMap[cell]!! * scoreMap[cell.right()]!!
+                if (scoreMap[cell.down()] != null)
+                    result += scoreMap[cell]!! * scoreMap[cell.down()]!!
+    //            if (scoreMap[cell.left()] != null)
+    //                result += scoreMap[cell]!! * scoreMap[cell.left()]!!
+    //            if (scoreMap[cell.up()] != null)
+    //                result += scoreMap[cell]!! * scoreMap[cell.up()]!!
+            }
+            result
+        }
+    */
     private val number: Int = count++
 
     val area: Lazy<Int> = lazy {
@@ -128,8 +168,18 @@ data class State(
 //        if(newFreeCells != oldFreeCells(size, newBuildings)) {
 //            throw IllegalStateException("Free cells are not equal")
 //        }
-        return State(newBuildings, newMap, size, newPerformanceMap, newFreeCells)
+
+
+        val newEmptyCountScore = recalculateEmptyCountScore(building, map, newMap, emptyCountScore, size)
+
+        val state = State(newBuildings, newMap, size, newPerformanceMap, newFreeCells, newEmptyCountScore)
+//        if (state.emptyScore.value != newEmptyCountScore) {
+//            throw IllegalStateException("Empty score is not equal")
+//        }
+
+        return state
     }
+
 
     private fun isLiquidsValid(building: Building): Boolean {
         if (building.type !in listOf(
@@ -201,8 +251,14 @@ data class State(
 //        if(newFreeCells != oldFreeCells(size, newBuildings)) {
 //            throw IllegalStateException("Free cells are not equal")
 //        }
+        val newEmptyCountScore = recalculateEmptyCountScore(building, map, newMap, emptyCountScore, size)
 
-        return State(newBuildings, newMap, size, newPerformanceMap, newFreeCells)
+
+        val state = State(newBuildings, newMap, size, newPerformanceMap, newFreeCells, newEmptyCountScore)
+//        if (state.emptyScore.value != newEmptyCountScore) {
+//            throw IllegalStateException("Empty score is not equal")
+//        }
+        return state
     }
 
     override fun equals(other: Any?): Boolean {
@@ -252,5 +308,83 @@ data class State(
             }
             return cells
         }
+
+        private fun recalculateEmptyCountScore(
+            building: Building,
+            oldMap: Map<Cell, Building>,
+            newMap: MutableMap<Cell, Building>,
+            emptyCountScore: Int,
+            size: Cell
+        ): Int {
+            var result = emptyCountScore
+            val oldEmptyMap: MutableMap<Cell, Int> = mutableMapOf()
+            val newEmptyMap: MutableMap<Cell, Int> = mutableMapOf()
+            val startX = (building.place.start.x - 2).coerceAtLeast(0)
+            val endX = (building.place.start.x + building.type.size + 2).coerceAtMost(size.x)
+            val startY = (building.place.start.y - 2).coerceAtLeast(0)
+            val endY = (building.place.start.y + building.type.size + 2).coerceAtMost(size.y)
+            for (x in startX until endX) {
+                for (y in startY until endY) {
+                    val cell = Cell(x, y)
+                    if (oldMap[cell] == null) {
+                        var current = 0
+                        if (oldMap[cell.right()] == null) {
+                            current++
+                        }
+                        if (oldMap[cell.down()] == null) {
+                            current++
+                        }
+                        if (oldMap[cell.left()] == null) {
+                            current++
+                        }
+                        if (oldMap[cell.up()] == null) {
+                            current++
+                        }
+                        if (current != 0) {
+                            oldEmptyMap[cell] = current
+                        }
+                    }
+
+                    if (newMap[cell] == null) {
+                        var current = 0
+                        if (newMap[cell.right()] == null) {
+                            current++
+                        }
+                        if (newMap[cell.down()] == null) {
+                            current++
+                        }
+                        if (newMap[cell.left()] == null) {
+                            current++
+                        }
+                        if (newMap[cell.up()] == null) {
+                            current++
+                        }
+                        if (current != 0) {
+                            newEmptyMap[cell] = current
+                        }
+                    }
+                }
+            }
+            for (x in startX until endX) {
+                for (y in startY until endY) {
+                    val cell = Cell(x, y)
+                    if (oldEmptyMap[cell] != null) {
+                        if (oldEmptyMap[cell.right()] != null)
+                            result -= oldEmptyMap[cell]!! * oldEmptyMap[cell.right()]!!
+                        if (oldEmptyMap[cell.down()] != null)
+                            result -= oldEmptyMap[cell]!! * oldEmptyMap[cell.down()]!!
+                    }
+                    if (newEmptyMap[cell] != null) {
+                        if (newEmptyMap[cell.right()] != null)
+                            result += newEmptyMap[cell]!! * newEmptyMap[cell.right()]!!
+                        if (newEmptyMap[cell.down()] != null)
+                            result += newEmptyMap[cell]!! * newEmptyMap[cell.down()]!!
+                    }
+                }
+            }
+
+            return result
+        }
     }
 }
+

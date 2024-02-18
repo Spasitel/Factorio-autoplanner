@@ -28,7 +28,7 @@ class BluePrintFieldExtractorTest {
         }
 
         var bCount = 1
-        var json = Utils.START_JSON
+        var json = String.format(Utils.START_JSON, 0, 0, 0, 0)
         for (b in state.buildings) {
             var toJson = b.toJson(bCount)
             if (b.type == BuildingType.INSERTER) {

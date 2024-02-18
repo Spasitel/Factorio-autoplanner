@@ -11,7 +11,7 @@ object Utils {
     var checkLiquids = false
 
     const val START_JSON =
-        "{\"blueprint\":{\"icons\":[{\"signal\":{\"type\":\"item\",\"name\":\"electric-furnace\"},\"index\":1}],\"entities\":["
+        "{\"blueprint\":{\"icons\":[{\"signal\":{\"type\":\"virtual\",\"name\":\"signal-%d\"},\"index\":1},{\"signal\":{\"type\":\"virtual\",\"name\":\"signal-%d\"},\"index\":2},{\"signal\":{\"type\":\"virtual\",\"name\":\"signal-%d\"},\"index\":3},{\"signal\":{\"type\":\"virtual\",\"name\":\"signal-%d\"},\"index\":4}],\"entities\":["
     const val END_JSON = "],\"item\":\"blueprint\",\"version\":281479273775104}}"
     fun cellsForBuilding(start: Cell, size: Int): Set<Cell> {
         val cells = HashSet<Cell>()
@@ -97,7 +97,15 @@ object Utils {
 
     fun convertToJson(best: State): String? {
         var bCount = 1
-        var json = StringBuilder(START_JSON)
+        var json = StringBuilder(
+            String.format(
+                START_JSON,
+                best.hashCode().div(1000).mod(10),
+                best.hashCode().div(100).mod(10),
+                best.hashCode().div(10).mod(10),
+                best.hashCode().mod(10),
+            )
+        )
         for (b in best.buildings) {
             if (b.type == BuildingType.EMPTY || b.type == BuildingType.EMPTY2 || b.type == BuildingType.EMPTY3 || b.type == BuildingType.EMPTY4) continue
             json.append(b.toJson(bCount))

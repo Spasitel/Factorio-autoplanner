@@ -75,7 +75,15 @@ object SimpleMain {
     private fun printBest() {
         println(best)
         var bCount = 1
-        var json = StringBuilder(Utils.START_JSON)
+        var json = StringBuilder(
+            String.format(
+                Utils.START_JSON,
+                best.hashCode().div(1000).mod(10),
+                best.hashCode().div(100).mod(10),
+                best.hashCode().div(10).mod(10),
+                best.hashCode().mod(10),
+            )
+        )
         for (b in best!!.buildings) {
             if (b.type == Type.EMPTY) continue
             json.append(b.toJson(bCount))

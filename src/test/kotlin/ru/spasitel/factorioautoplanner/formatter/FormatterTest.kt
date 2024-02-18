@@ -10,6 +10,14 @@ import java.util.*
 
 
 internal class FormatterTest {
+
+    @Test
+    fun testDigits() {
+        val orig =
+            "0eNqV0N8KgyAUBvB3OdcGqdEfX2WMUZuMA3UUtViE7z4t2LrtTj/O75PjBsM4a+uQAqgN8GnIg7pt4PFN/ZizsFoNChZ0YU4JA+qnHBwTRQmRAdJLf0DxyC5IfpLikhQnKS9JeZJVvDPQFDCgPpbeL+uD5mnQLq3z084MxhoXUp81PgFD+bFUUjS8ZLCmAy+5jLkSg56S+X8sg0U7vxvR8qrpRNNWnay7OsYvr0V9nQ=="
+        println(decode(orig))
+    }
+
     @Test
     fun testFormatter() {
         Assertions.assertEquals(decode(smelter), smelter_dec)

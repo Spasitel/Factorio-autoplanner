@@ -46,6 +46,6 @@ data class Assembler(override val place: Place, val direction: Int?, val recipe:
     }
 
     override fun toString(): String {
-        return super.toString()
+        return super.toString() + " $recipe"
     }
 }
