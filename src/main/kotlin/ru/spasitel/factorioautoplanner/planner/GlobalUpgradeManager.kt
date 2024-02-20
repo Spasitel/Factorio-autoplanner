@@ -17,29 +17,88 @@ class GlobalUpgradeManager(private val globalPlanner: GlobalPlanner) {
         logger.info { "After fill:" }
         logger.info { Utils.convertToJson(best) }
         scoreManager.calculateScore(best, recipeTree, true)
-        val best1 = removeOne(best, recipeTree, field)
+        val bestOne = removeOne(best, recipeTree, field)
+        logger.info { "After remove one:" }
+        logger.info { Utils.convertToJson(bestOne) }
+        scoreManager.calculateScore(bestOne, recipeTree, true)
+
+//        val bestTwo = removeTwo(best, recipeTree, field)
 
 
-        return best
+        return bestOne
     }
 
     private fun removeOne(start: State, recipeTree: Map<String, ProcessedItem>, field: Field): State {
         var best = start
+        var bestScore = 0.0
         var changed = true
         var attempts = 0
+        var same = 0
         loop@ while (changed) {
             val toRemove = listToRemove(best, field).toMutableList()
             logger.info { "Remove one attempt: $attempts" }
+            val score = scoreManager.calculateScore(best, recipeTree, false).first
+            if (score > bestScore) {
+                same = 0
+                bestScore = score
+                logger.info { "New best score: $bestScore" }
+            } else if (same > 3) {
+                return best
+            } else {
+                same++
+            }
             attempts++
             changed = false
-            while (toRemove.size >= 2) {
+            while (toRemove.size >= 1) {
+                val building = toRemove.removeAt(0)
+//                val building2 = toRemove.removeAt(0)
+//                logger.info { "Remove one: $building, $building2" }
+                logger.info { "Remove one: $building" }
+                val removed = removeWithConnectors(best, building)
+//                val removed = removeWithConnectors(removed1, building2)
+                val current = bestFillAll(removed, recipeTree, field)
+                if (isDifferent(current, best, building)) {
+                    changed = true
+                    val newScore = scoreManager.calculateScore(current, recipeTree, false)
+                    logger.info { "Remove one update best ${newScore.second}: ${newScore.first}" }
+                    logger.info { Utils.convertToJson(current) }
+                    best = current
+                }
+            }
+        }
+        return best
+    }
+
+    private fun removeTwo(start: State, recipeTree: Map<String, ProcessedItem>, field: Field): State {
+        var best = start
+        var bestScore = 0.0
+        var changed = true
+        var attempts = 0
+        var same = 0
+        loop@ while (changed) {
+            val toRemove = listToRemove(best, field).toMutableList()
+            logger.info { "Remove two attempt: $attempts" }
+            val score = scoreManager.calculateScore(best, recipeTree, false).first
+            if (score > bestScore) {
+                same = 0
+                bestScore = score
+                logger.info { "New best score: $bestScore" }
+            } else if (same > 3) {
+                return best
+            } else {
+                same++
+            }
+            attempts++
+            changed = false
+            while (toRemove.size >= 1) {
                 val building = toRemove.removeAt(0)
                 val building2 = toRemove.removeAt(0)
                 logger.info { "Remove one: $building, $building2" }
+
                 val removed1 = removeWithConnectors(best, building)
                 val removed = removeWithConnectors(removed1, building2)
-                val current = bestFill(removed, recipeTree, field)
-                if (isDifferent(current, best, building)) {
+                val current = bestFillAll(removed, recipeTree, field)
+                if (isDifferent(current, best, building) || isDifferent(current, best, building2)) {
                     changed = true
                     val newScore = scoreManager.calculateScore(current, recipeTree, false)
                     logger.info { "Remove one update best ${newScore.second}: ${newScore.first}" }
@@ -131,6 +190,52 @@ class GlobalUpgradeManager(private val globalPlanner: GlobalPlanner) {
         return best
     }
 
+    private fun bestFillAll(
+        start: State,
+        recipeTree: Map<String, ProcessedItem>,
+        field: Field,
+        limit: Int = 9999
+    ): State {
+        var best = start
+        var bestScore = 0.0
+        val todo = mutableSetOf(start)
+        while (todo.isNotEmpty()) {
+            val current = todo.first()
+            todo.remove(current)
+
+
+            val min = scoreManager.calculateScore(current, recipeTree, false)
+            val assembler = current.buildings.filterIsInstance<Assembler>().size
+            val smelter = current.buildings.filterIsInstance<Smelter>().size
+            val beacon = current.buildings.filterIsInstance<Beacon>().size
+            logger.info { "Updating ${min.second}, ${min.first}. Map counts: $assembler, $smelter, $beacon" }
+            logger.trace { Utils.convertToJson(current) }
+            if (min.first > bestScore ||
+                (min.first == bestScore && current.freeCells.size > best.freeCells.size) ||
+                (min.first == bestScore && current.freeCells.size == best.freeCells.size && current.emptyCountScore > best.emptyCountScore)
+            ) {
+                logger.info { "New best: ${min.first}" }
+                best = current
+                bestScore = min.first
+            }
+
+            val special = min.second in setOf("electronic-circuit", "processing-unit")
+            val next = globalPlanner.planeAllSingleStep(
+                min.first,
+                current,
+                field,
+                min.second,
+                recipeTree,
+                mutableSetOf(),
+                globalPlanner::stepAllUnit,
+                limit = limit,
+                special = special
+            )
+            next.forEach { todo.add(it.second) }
+        }
+        return best
+    }
+
 
     private fun removeWithConnectors(
         newBest: State,
@@ -156,6 +261,14 @@ class GlobalUpgradeManager(private val globalPlanner: GlobalPlanner) {
             result = result.removeBuilding(connection)
         }
         return result
+    }
+
+    fun upgradeRobots(productivity: State, recipeTree: Map<String, ProcessedItem>, field: Field): State {
+        //do not move assemblers and beacons and smelters
+        //move chests and inserters
+        //swap assemblers recipes - if not reducing productivity
+        //swap electronic circuit recipes - if not reducing productivity
+        TODO("Not yet implemented")
     }
 
 }

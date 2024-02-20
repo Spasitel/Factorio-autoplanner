@@ -26,8 +26,8 @@ class GlobalPlanner {
         Utils.checkLiquids = true
 
         var double = false
-        var min = 4.45
-        var max = 4.55
+        var min = 4.5
+        var max = 4.6
         var best: State? = null
         while (max - min > 0.05) {
             val mid = (max + min) / 2
@@ -237,6 +237,48 @@ class GlobalPlanner {
             }
         }
         return Pair(next, nextScore)
+    }
+
+    fun planeAllSingleStep(
+        score: Double,
+        current: State,
+        field: Field,
+        unit: String,
+        recipeTree: Map<String, ProcessedItem>,
+        scip: MutableSet<Cell>,
+        stepUnit: (start: Cell, current: State, field: Field, recipeTree: Map<String, ProcessedItem>, unit: String) -> SortedSet<Pair<State?, Double?>>,
+        limit: Int = 10,
+        special: Boolean = false
+    ): Set<Pair<Double, State>> {
+        val result = mutableSetOf<Pair<Double, State>>()
+
+        result.addAll(planeBeaconSet(current, field, unit, recipeTree))
+
+        if (special) {
+            return result
+        }
+        val starts = placesForItem(current, field, unit, recipeTree)
+        var count = 0
+        for (start in starts) {
+            if (scip.contains(start)) {
+                continue
+            }
+            // sort by score
+            logger.info { "Trying $unit from $start" }
+            stepUnit(start, current, field, recipeTree, unit).forEach {
+                if (it.first == null) {
+                    scip.add(start)
+                    return@forEach
+                }
+                result.add(Pair(it.second!!, it.first!!))
+            }
+
+            count++
+            if (count > limit) {
+                break
+            }
+        }
+        return result
     }
 
     private fun stepElectricEngine(
@@ -642,6 +684,38 @@ class GlobalPlanner {
         return best
     }
 
+    private fun planeBeaconSet(
+        current: State,
+        field: Field,
+        unit: String,
+        recipeTree: Map<String, ProcessedItem>
+    ): SortedSet<Pair<Double, State>> {
+        val result = TreeSet<Pair<Double, State>> { a, b ->
+            a.first.compareTo(b.first)
+        }
+
+        val buildingsForUnit = when (unit) {
+            //blue and green - calculate which in chain is worse
+            "processing-unit", "electronic-circuit" -> findLeastPerformed(current, unit)
+            else -> scoreManager.buildingsForUnit(unit, current)
+        }
+
+        buildingsForUnit.forEach { assembler ->
+            current.freeCells.filter { it.maxDistanceTo(assembler.place.start) < 6 }.forEach { beaconStart ->
+                val beacon = Utils.getBuilding(beaconStart, BuildingType.BEACON)
+                val newState = current.addBuilding(beacon)
+                if (newState != null) {
+                    val newScore =
+                        if (unit == "processing-unit" || unit == "electronic-circuit")
+                            scoreManager.calculateScoreForItem(newState, unit, recipeTree) else
+                            scoreManager.calculateScoreForBuilding(Pair(newState, beacon), unit)
+                    result.add(Pair(newScore, newState))
+                }
+            }
+        }
+        return result
+    }
+
     private fun findLeastPerformed(current: State, unit: String): List<Building> {
         val result = mutableListOf<Building>()
         val buildings =
@@ -677,25 +751,54 @@ class GlobalPlanner {
         recipeTree: Map<String, ProcessedItem>,
         unit: String
     ): Pair<State?, Double?> {
-        val procWithConnections =
+        val withConnections =
             TreeSet<Pair<State, Building>> { a, b -> compareForUnit(a, b, unit) }
         val type = if (unit == "stone-brick") BuildingType.SMELTER else BuildingType.ASSEMBLER
-        val procBuilding = Utils.getBuilding(
+        val building = Utils.getBuilding(
             start,
             type,
             recipe = unit
         )
-        val proc = current.addBuilding(procBuilding) ?: return Pair(null, null)
+        val withBuilding = current.addBuilding(building) ?: return Pair(null, null)
         // add chest and inserters
-        val planeChest = planeChests(proc, field, procBuilding, unit)
-        planeChest.map { it to procBuilding }.forEach { procWithConnections.add(it) }
-        if (procWithConnections.isNotEmpty()) {
-            val bestWire = procWithConnections.first()
+        val planeChest = planeChests(withBuilding, field, building, unit)
+        planeChest.map { it to building }.forEach { withConnections.add(it) }
+        withConnections.forEach {
+            val bestWire = it
             val bestWireState = bestWire.first
             val bestWireScore = scoreManager.calculateScoreForItem(bestWireState, unit, recipeTree)
             return Pair(bestWireState, bestWireScore)
         }
         return Pair(null, null)
+    }
+
+    fun stepAllUnit(
+        start: Cell,
+        current: State,
+        field: Field,
+        recipeTree: Map<String, ProcessedItem>,
+        unit: String
+    ): SortedSet<Pair<State?, Double?>> {
+
+        val result = TreeSet<Pair<State?, Double?>> { a, b ->
+            a.second!!.compareTo(b.second!!)
+        }
+
+        val type = if (unit == "stone-brick") BuildingType.SMELTER else BuildingType.ASSEMBLER
+        val building = Utils.getBuilding(
+            start,
+            type,
+            recipe = unit
+        )
+        val withBuilding = current.addBuilding(building) ?: return sortedSetOf(Pair(null, null))
+        // add chest and inserters
+        val planeChest = planeChests(withBuilding, field, building, unit)
+        planeChest.forEach {
+
+            val bestWireScore = scoreManager.calculateScoreForItem(it, unit, recipeTree)
+            result.add(Pair(it, bestWireScore))
+        }
+        return result
     }
 
     private fun planeRoboports(state: State, field: Field, recipeTree: Map<String, ProcessedItem>): State? {
@@ -861,10 +964,11 @@ class GlobalPlanner {
 
     private fun planeUpgrade(recipeTree: Map<String, ProcessedItem>, field: Field, best: State): State {
         //upgrade productivity
-        upgradeManager.upgradeProductivity(best, recipeTree, field)
+        val productivity = upgradeManager.upgradeProductivity(best, recipeTree, field)
         //upgrade robots
-        //remove roboports?
-        TODO("Not yet implemented") //Remove 1 or 2 buildings and replace with better
+        val robots = upgradeManager.upgradeRobots(productivity, recipeTree, field)
+
+        return robots
     }
 
     private fun planeDowngrade(upgrade: State) {
