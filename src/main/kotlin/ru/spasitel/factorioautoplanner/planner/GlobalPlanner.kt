@@ -1,12 +1,9 @@
 package ru.spasitel.factorioautoplanner.planner
 
-import com.google.gson.Gson
 import io.github.oshai.kotlinlogging.KotlinLogging
 import ru.spasitel.factorioautoplanner.data.*
-import ru.spasitel.factorioautoplanner.data.auto.BlueprintDTO
 import ru.spasitel.factorioautoplanner.data.building.*
 import ru.spasitel.factorioautoplanner.formatter.BluePrintFieldExtractor
-import ru.spasitel.factorioautoplanner.formatter.Formatter
 import java.util.*
 import kotlin.math.roundToInt
 import kotlin.math.sqrt
@@ -16,17 +13,17 @@ class GlobalPlanner {
     private val scoreManager = ScoreManager()
     private val upgradeManager = GlobalUpgradeManager(this)
 
-    fun planeGlobal(recipeTree: Map<String, ProcessedItem>, fieldBlueprint: String) {
-        val decodeField = Formatter.decode(fieldBlueprint)
-        val dto = Gson().fromJson(decodeField, BlueprintDTO::class.java)
-        val field = BluePrintFieldExtractor().transformBlueprintToField(dto)
-
+    fun planeGlobal(recipeTree: Map<String, ProcessedItem>, fieldPrep: Field, fieldFull: Field) {
+//        val decodeField = Formatter.decode(fieldBlueprint)
+//        val dto = Gson().fromJson(decodeField, BlueprintDTO::class.java)
+//        val field = BluePrintFieldExtractor().transformBlueprintToField(dto)
+        val field = fieldFull
         printPredeployed(field, recipeTree)
 
         Utils.checkLiquids = true
 
         var double = false
-        var min = 4.5
+        var min = 4.4
         var max = 4.6
         var best: State? = null
         while (max - min > 0.05) {
@@ -39,8 +36,8 @@ class GlobalPlanner {
                 logger.info { "No greedy solution found" }
             }
 
-            val withRoboports = greedy?.let { planeRoboports(it, field, recipeTree) }
-
+//            val withRoboports = greedy?.let { planeRoboports(it, field, recipeTree) }
+            val withRoboports = greedy
             if (withRoboports != null) {
                 min = scoreManager.calculateScore(withRoboports, recipeTree, true).first
                 best = withRoboports
@@ -58,10 +55,12 @@ class GlobalPlanner {
             logger.error { "No solution found" }
             return
         }
-        val upgrade = planeUpgrade(recipeTree, field, best)
+        val upgrade = planeUpgrade(recipeTree, fieldPrep, best)
 
-        planeDowngrade(upgrade)
-
+        val downgrade = planeDowngrade(upgrade)
+        //todo: set restricts for chests
+        logger.info { "========= planeGlobal result =========" }
+        logger.info { Utils.convertToJson(downgrade) }
     }
 
     private fun printPredeployed(field: Field, recipeTree: Map<String, ProcessedItem>) {
@@ -118,7 +117,7 @@ class GlobalPlanner {
     }
 
     private fun planeSpecial(recipeTree: Map<String, ProcessedItem>, field: Field, mid: Double): State? {
-        val delta = 0.5
+        val delta = 0.7
         val processors = planeUnit(
             field.state,
             field,
@@ -253,7 +252,7 @@ class GlobalPlanner {
         val result = mutableSetOf<Pair<Double, State>>()
 
         result.addAll(planeBeaconSet(current, field, unit, recipeTree))
-
+        logger.info { "Beacon results count: ${result.size}" }
         if (special) {
             return result
         }
@@ -469,11 +468,11 @@ class GlobalPlanner {
     }
 
 
-    private fun planeChests(
+    fun planeChests(
         planeLiquid: State,
         field: Field,
         building: Building,
-        s: String,
+        unit: String,
         withOutput: Boolean = true
     ): List<State> {
         val withInputChest =
@@ -486,7 +485,7 @@ class GlobalPlanner {
                         withInputChestState,
                         building,
                         BuildingType.PROVIDER_CHEST,
-                        items = setOf(s),
+                        items = setOf(unit),
                         field = field
                     )
                 result.addAll(withOutputChest)
@@ -691,7 +690,8 @@ class GlobalPlanner {
         recipeTree: Map<String, ProcessedItem>
     ): SortedSet<Pair<Double, State>> {
         val result = TreeSet<Pair<Double, State>> { a, b ->
-            a.first.compareTo(b.first)
+            if (a.first != b.first) a.first.compareTo(b.first) else
+                a.hashCode().compareTo(b.hashCode())
         }
 
         val buildingsForUnit = when (unit) {
@@ -781,7 +781,8 @@ class GlobalPlanner {
     ): SortedSet<Pair<State?, Double?>> {
 
         val result = TreeSet<Pair<State?, Double?>> { a, b ->
-            a.second!!.compareTo(b.second!!)
+            if (a.second!! != b.second!!) a.second!!.compareTo(b.second!!) else
+                a.hashCode().compareTo(b.hashCode())
         }
 
         val type = if (unit == "stone-brick") BuildingType.SMELTER else BuildingType.ASSEMBLER
@@ -801,177 +802,20 @@ class GlobalPlanner {
         return result
     }
 
-    private fun planeRoboports(state: State, field: Field, recipeTree: Map<String, ProcessedItem>): State? {
-        // calculate provider chests with amount of items
-        val providers = calculateProviderChests(state, field, recipeTree)
-        // calculate request chests with amount of items
-        val requests = calculateRequestChests(state, field, recipeTree)
-        // calculate number of roboports
-        val roboports = calculateRoboports(providers, requests)
-
-        logger.info { "Roboports: $roboports" }
-        // add roboports
-
-        return state
-    }
-
-    private fun calculateRoboports(
-        providers: Map<String, Set<Pair<ProviderChest, Double>>>,
-        requests: Map<String, Set<Pair<RequestChest, Double>>>
-    ): Int {
-        val result: MutableMap<String, Double> = mutableMapOf()
-        for (request in requests) {
-            val item = request.key
-            result[item] = 0.0
-            if (providers[item] == null) {
-                logger.info { "No providers for $item" }
-                continue
-            }
-            val providersAmount = providers[item]!!.sumOf { it.second }
-            request.value.forEach { (chest, amount) ->
-                providers[item]!!.forEach { (provider, providerAmount) ->
-                    val distance = chest.place.start.distanceTo(provider.place.start)
-                    val d = amount * providerAmount * distance / providersAmount / 4.0
-                    result[item] = result[item]!! + d
-                }
-            }
-        }
-        return (result.map { it.value }.sum() / 220.0).toInt() + 1
-    }
-
-    private fun calculateRequestChests(
-        state: State,
-        field: Field,
-        recipeTree: Map<String, ProcessedItem>
-    ): Map<String, Set<Pair<RequestChest, Double>>> {
-        val result = mutableMapOf<String, MutableSet<Pair<RequestChest, Double>>>()
-        for (request in state.buildings.filterIsInstance<RequestChest>()) {
-            if (!Utils.isBetween(request.place.start, field.chestField)) {
-                continue
-            }
-
-            val inserters =
-                state.buildings.filter { it.type == BuildingType.INSERTER && (it as Inserter).from() == request.place.start }
-            for (inserter in inserters) {
-                var source = state.map[(inserter as Inserter).to()]!!
-                if (source.type == BuildingType.STEEL_CHEST) {
-                    val inserter2 =
-                        state.buildings.first { it.type == BuildingType.INSERTER && (it as Inserter).from() == source.place.start }
-                    source = state.map[(inserter2 as Inserter).to()]!!
-                }
-                val item = when (source) {
-                    is Assembler -> source.recipe
-                    is ChemicalPlant -> source.recipe
-                    is Smelter -> "stone-brick"
-                    is RocketSilo -> "space-science-pack"
-                    is Lab -> "science-approximation"
-                    else -> throw IllegalStateException("Unknown source $source")
-                }
-                val recipe = recipeTree[item.split("#")[0]]!!
-                for (ingredient in recipe.ingredients) {
-                    if (ingredient.key in setOf("petroleum-gas", "lubricant", "sulfuric-acid", "water")) {
-                        continue
-                    }
-                    //green and blue - do not request what made in chain
-                    if (ingredient.key == "electronic-circuit" && item == "processing-unit") {
-                        continue
-                    }
-                    if (ingredient.key == "copper-cable" && item.split("#")[0] == "electronic-circuit") {
-                        continue
-                    }
-                    if (ingredient.key == "sulfur" && item == "sulfuric-acid") {
-                        continue
-                    }
-                    val set = result.getOrDefault(ingredient.key, mutableSetOf())
-                    val amount = calculateRequestAmount(source, state, recipeTree, item, ingredient.key)
-                    set.add(Pair(request, amount))
-                    result[ingredient.key] = set
-                }
-            }
-        }
-        return result
-    }
-
-    private fun calculateRequestAmount(
-        source: Building,
-        state: State,
-        recipeTree: Map<String, ProcessedItem>,
-        item: String,
-        key: String
-    ): Double {
-        val productivityOut = calculateProviderAmount(source, state, recipeTree, item)
-        val recipe = recipeTree[item.split("#")[0]]!!
-        return productivityOut / recipe.amount * recipe.ingredients[key]!!
-    }
-
-    private fun calculateProviderChests(
-        state: State,
-        field: Field,
-        recipeTree: Map<String, ProcessedItem>
-    ): Map<String, Set<Pair<ProviderChest, Double>>> {
-        val result = mutableMapOf<String, MutableSet<Pair<ProviderChest, Double>>>()
-        for (provider in state.buildings.filterIsInstance<ProviderChest>()) {
-            if (!Utils.isBetween(provider.place.start, field.chestField)) {
-                continue
-            }
-            if (provider.items.isEmpty()) {
-                throw IllegalStateException("Provider chest without items")
-            }
-            if (provider.items.first() in TechnologyTreePlanner.base) {
-                val item = provider.items.first()
-                val set = result.getOrDefault(item, mutableSetOf())
-                set.add(Pair(provider, 100.0))
-                result[item] = set
-                continue
-            }
-            val inserters =
-                state.buildings.filter { it.type == BuildingType.INSERTER && (it as Inserter).to() == provider.place.start }
-            for (inserter in inserters) {
-                var source = state.map[(inserter as Inserter).from()]!!
-                if (source.type == BuildingType.STEEL_CHEST) {
-                    val inserter2 =
-                        state.buildings.first { it.type == BuildingType.INSERTER && (it as Inserter).to() == source.place.start }
-                    source = state.map[(inserter2 as Inserter).from()]!!
-                }
-                val item = when (source) {
-                    is Assembler -> source.recipe
-                    is ChemicalPlant -> source.recipe
-                    is Smelter -> "stone-brick"
-                    is RocketSilo -> "space-science-pack"
-                    is RequestChest -> continue
-                    else -> throw IllegalStateException("Unknown source $source")
-                }
-                val set = result.getOrDefault(item, mutableSetOf())
-                val amount = calculateProviderAmount(source, state, recipeTree, item)
-                set.add(Pair(provider, amount))
-                result[item] = set
-            }
-        }
-        return result
-    }
-
-    private fun calculateProviderAmount(
-        source: Building,
-        state: State,
-        recipeTree: Map<String, ProcessedItem>,
-        item: String
-    ): Double {
-        val productivity = scoreManager.calculateScoreForBuilding(Pair(state, source), item)
-        val recipe = recipeTree[item.split("#")[0]]!!
-        return productivity / recipe.totalProductivity
-    }
-
 
     private fun planeUpgrade(recipeTree: Map<String, ProcessedItem>, field: Field, best: State): State {
         //upgrade productivity
-        val productivity = upgradeManager.upgradeProductivity(best, recipeTree, field)
+//        val productivity = upgradeManager.upgradeProductivity(best, recipeTree, field)
         //upgrade robots
-        val robots = upgradeManager.upgradeRobots(productivity, recipeTree, field)
+        val robots = upgradeManager.upgradeRobots(best, recipeTree, field)
+
 
         return robots
     }
 
-    private fun planeDowngrade(upgrade: State) {
+    private fun planeDowngrade(upgrade: State): State {
+        //todo: downgrade speed modules
+        //todo: downgrade inserters
         TODO("Not yet implemented")
     }
 
@@ -982,7 +826,7 @@ class GlobalPlanner {
         fun main(args: Array<String>) {
             log.info { "Start" }
             val tree = TechnologyTreePlanner.scienceRoundTree()
-            GlobalPlanner().planeGlobal(tree, BluePrintFieldExtractor.FIELD)
+            GlobalPlanner().planeGlobal(tree, BluePrintFieldExtractor.FIELD_PREP, BluePrintFieldExtractor.FIELD_FULL)
         }
     }
 }

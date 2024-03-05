@@ -6,10 +6,10 @@ import java.util.*
 
 data class Assembler(override val place: Place, val direction: Int?, val recipe: String) : Building(place) {
     override fun toJson(number: Int): String {
-        val item = if (recipe in TechnologyTreePlanner.productivity_module_limitation)
+        val fixedRecipe = recipe.split("#")[0]
+        val item = if (fixedRecipe in TechnologyTreePlanner.productivity_module_limitation)
             "productivity-module-3"
         else "speed-module-3"
-        val fixedRecipe = recipe.split("#")[0]
         return if (direction == null)
             String.format(
                 Locale.US,
