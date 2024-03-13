@@ -147,7 +147,12 @@ class GlobalUpgradeManager(private val globalPlanner: GlobalPlanner) {
         return result
     }
 
-    private fun listToRemove(best: State, field: Field, removeBeacons: Boolean = true): List<Building> {
+    private fun listToRemove(
+        best: State,
+        field: Field,
+        removeBeacons: Boolean = true,
+        includeScip: Boolean = false
+    ): List<Building> {
         val skip = setOf(
             "copper-cable#green",
             "copper-cable#blue",
@@ -160,7 +165,7 @@ class GlobalUpgradeManager(private val globalPlanner: GlobalPlanner) {
             .asSequence()
             .filter { (it.type == BuildingType.BEACON && removeBeacons) || it.type == BuildingType.ASSEMBLER || it.type == BuildingType.SMELTER }
             .filter { field.state.map[it.place.start] == null }
-            .filter { it.type != BuildingType.ASSEMBLER || (it as Assembler).recipe !in skip }
+            .filter { includeScip || it.type != BuildingType.ASSEMBLER || (it as Assembler).recipe !in skip }
             .filter {
                 it.type != BuildingType.BEACON ||
                         !notTouch.any { a -> abs(a.place.start.x - it.place.start.x) < 6 && abs(a.place.start.y - it.place.start.y) < 6 }
@@ -237,7 +242,7 @@ class GlobalUpgradeManager(private val globalPlanner: GlobalPlanner) {
         var bestScore = 0.0
         val todo = mutableSetOf(start)
         while (todo.isNotEmpty()) {
-            val current = todo.first()
+            val current = todo.maxBy { it.buildings.size }
             todo.remove(current)
 
 
@@ -282,8 +287,15 @@ class GlobalUpgradeManager(private val globalPlanner: GlobalPlanner) {
             return newBest.removeBuilding(building)
         }
         val connections = newBest.buildings.filterIsInstance<Inserter>()
-            .filter { it.to() in building.place.cells || it.from() in building.place.cells }
-        if (connections.size != 2) throw IllegalStateException("Wrong size")
+            .filter {
+                (it.to() in building.place.cells && newBest.map[it.from()] is RequestChest) ||
+                        (it.from() in building.place.cells && newBest.map[it.to()] is ProviderChest)
+            }
+        if (connections.size != 2 &&
+            !(connections.size == 1 &&
+                    building.type == BuildingType.ASSEMBLER &&
+                    (building as Assembler).recipe.contains("#"))
+        ) throw IllegalStateException("Wrong size ${connections.size} for $building")
         val chests =
             connections.map { if (newBest.map[it.to()]!! is ProviderChest || newBest.map[it.to()]!! is RequestChest) newBest.map[it.to()]!! else newBest.map[it.from()]!! }
                 .filter { chest ->
@@ -300,7 +312,7 @@ class GlobalUpgradeManager(private val globalPlanner: GlobalPlanner) {
         return result
     }
 
-    fun upgradeRobots(productivity: State, recipeTree: Map<String, ProcessedItem>, field: Field): State {
+    fun upgradeRobotsTwo(productivity: State, recipeTree: Map<String, ProcessedItem>, field: Field): State {
         //do not move assemblers and beacons and smelters
         //move chests and inserters
         //swap assemblers recipes - if not reducing productivity
@@ -378,6 +390,55 @@ class GlobalUpgradeManager(private val globalPlanner: GlobalPlanner) {
             }
         }
 
+    }
+
+    fun upgradeRobots(start: State, recipeTree: Map<String, ProcessedItem>, field: Field): State {
+        var best = start
+        var bestScore = roboportsManager.planeRoboports(start, field, recipeTree)
+        var attempts = 0
+        var same = 0
+        while (true) {
+            val toRemove = listToRemove(best, field, removeBeacons = false, includeScip = true).toMutableList()
+            logger.info { "Upgrade roboports attempt: $attempts" }
+            val score = roboportsManager.planeRoboports(best, field, recipeTree)
+            if (score < bestScore) {
+                same = 0
+                bestScore = score
+                logger.info { "New Upgrade roboports best score: $bestScore" }
+            } else if (same > 3) {
+                return best
+            } else {
+                same++
+            }
+            attempts++
+            var localBestScore = bestScore
+            while (toRemove.isNotEmpty()) {
+                val building = toRemove.removeAt(0)
+
+                logger.info { "Upgrade roboports: $building" }
+
+                val removed = removeWithConnectors(best, building)
+
+                val add = removed.addBuilding(building)!!
+                val recipe = if (building is Assembler) building.recipe else "stone-brick"
+
+                globalPlanner.planeChests(add, field, building, recipe).forEach { current ->
+                    val newScore = roboportsManager.planeRoboports(current, field, recipeTree)
+                    if (newScore < localBestScore) {
+                        logger.info { "Upgrade roboports update best $newScore" }
+                        logger.info { Utils.convertToJson(current) }
+                        localBestScore = newScore
+                        best = current
+                    }
+                }
+            }
+        }
+    }
+
+    fun downgradeProductivity(upgrade: State, recipeTree: Map<String, ProcessedItem>, fieldPrep: Field): State {
+
+
+        TODO("Not yet implemented")
     }
 
 }

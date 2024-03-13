@@ -65,8 +65,8 @@ class ScoreManager {
                 }
 
                 val inserter2 = state.buildings.filterIsInstance<Inserter>()
-                    .first { it.to() in green.place.cells && state.map[it.from()] is Assembler && (state.map[it.from()] as Assembler).recipe == "copper-cable#blue" }
-                val cable = (state.map[inserter2.from()] as Assembler)
+                    .firstOrNull { it.to() in green.place.cells && state.map[it.from()] is Assembler && (state.map[it.from()] as Assembler).recipe == "copper-cable#blue" }
+                val cable = (state.map[inserter2!!.from()] as Assembler)
                 val cableProductivity = calculateScoreForBuilding(Pair(state, cable), "copper-cable") * 1.30666666
                 if (cableProductivity < productivity) {
                     productivity = cableProductivity
@@ -102,17 +102,14 @@ class ScoreManager {
         val building = pair.second
         when (building.type) {
             BuildingType.ASSEMBLER -> {
-                var start = if (unit in TechnologyTreePlanner.productivity_module_limitation) {
-                    0.4
-                } else {
-                    3.0
-                }
+                var start = (building as Assembler).speed()
                 start += pair.first.performanceMap.getOrDefault(building.place.start, 0) * 0.5
                 return start
             }
 
             BuildingType.CHEMICAL_PLANT -> {
-                var start = if (unit in TechnologyTreePlanner.productivity_module_limitation) {
+                var start =
+                    if (unit in TechnologyTreePlanner.productivity_module_limitation) { //todo: minor. module lvl
                     0.55
                 } else {
                     2.5
@@ -130,7 +127,8 @@ class ScoreManager {
             }
 
             BuildingType.SMELTER -> {
-                var start = if (unit in TechnologyTreePlanner.productivity_module_limitation) {
+                var start =
+                    if (unit in TechnologyTreePlanner.productivity_module_limitation) { //todo: minor. module lvl
                     0.7
                 } else {
                     2.0

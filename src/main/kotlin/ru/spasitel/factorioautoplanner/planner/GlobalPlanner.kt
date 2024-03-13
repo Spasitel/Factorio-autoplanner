@@ -23,8 +23,8 @@ class GlobalPlanner {
         Utils.checkLiquids = true
 
         var double = false
-        var min = 4.4
-        var max = 4.6
+        var min = 4.1
+        var max = 4.5
         var best: State? = null
         while (max - min > 0.05) {
             val mid = (max + min) / 2
@@ -57,7 +57,7 @@ class GlobalPlanner {
         }
         val upgrade = planeUpgrade(recipeTree, fieldPrep, best)
 
-        val downgrade = planeDowngrade(upgrade)
+        val downgrade = planeDowngrade(upgrade, fieldPrep, recipeTree)
         //todo: set restricts for chests
         logger.info { "========= planeGlobal result =========" }
         logger.info { Utils.convertToJson(downgrade) }
@@ -379,7 +379,7 @@ class GlobalPlanner {
                 val planeConnection = planeConnection(green, field, greenBuilding, blue.second) ?: continue
                 // add chest and inserters
                 val planeChest =
-                    planeChests(planeConnection, field, greenBuilding, "electronic-circuit#blue", false)
+                    planeChests(planeConnection, field, greenBuilding, "electronic-circuit#blue")
                 planeChest.map { g -> g to greenBuilding }.forEach { g -> greenWithConnections.add(g) }
             }
             //add copper wire
@@ -398,7 +398,7 @@ class GlobalPlanner {
                     val planeConnection = planeConnection(wire, field, wireBuilding, green.second) ?: continue
                     // add chest and inserters
                     val planeChest =
-                        planeChests(planeConnection, field, wireBuilding, "copper-cable#blue", false)
+                        planeChests(planeConnection, field, wireBuilding, "copper-cable#blue")
                     planeChest.map { g -> g to wireBuilding }.forEach { g -> wireWithConnections.add(g) }
                 }
 
@@ -453,7 +453,7 @@ class GlobalPlanner {
                     planeConnection(wire, field, wireBuilding, greenWithConnection.second) ?: continue
                 // add chest and inserters
                 val planeChestWire =
-                    planeChests(planeConnection, field, wireBuilding, "copper-cable#green", false)
+                    planeChests(planeConnection, field, wireBuilding, "copper-cable#green")
                 planeChestWire.map { g -> g to wireBuilding }.forEach { g -> wireWithConnections.add(g) }
             }
 
@@ -472,12 +472,11 @@ class GlobalPlanner {
         planeLiquid: State,
         field: Field,
         building: Building,
-        unit: String,
-        withOutput: Boolean = true
+        unit: String
     ): List<State> {
         val withInputChest =
             GreedyPlanner().addChests(planeLiquid, building, BuildingType.REQUEST_CHEST, field = field)
-        if (withOutput) {
+        if (!unit.contains("#")) {
             val result = mutableListOf<State>()
             for (withInputChestState in withInputChest) {
                 val withOutputChest =
@@ -586,18 +585,20 @@ class GlobalPlanner {
             val average = Cell(chests.map { it.x }.average().roundToInt(), chests.map { it.y }.average().roundToInt())
             chestsToValue[average] = u
         }
-        if (unit == "processing-unit") {
-            freeCells = freeCells.filter { it.y < 50 }//todo processing-unit only in top
-        }
-        val sortedByDistance = freeCells.sortedBy {
-            chestsToValue.map { (t, u) ->
-                getDistance(it, t) * u
-            }.sum()
-        }
+        val sortedByDistance = if (unit == "processing-unit") {
+            //processing-unit only in top
+            freeCells.filter { it.y < 60 }.sortedBy { -it.x }.take(400)
+        } else {
+            freeCells.sortedBy {
+                chestsToValue.map { (t, u) ->
+                    getDistance(it, t) * u
+                }.sum()
 //            .sortedBy {
 //            if (Utils.isBetween(it, field.roboportsField)) 1 else 0
 //        }
-            .take(400)
+            }.take(400)
+        }
+
         val sortedByPerformance = sortedByDistance.sortedBy {
             -current.performanceMap.getOrDefault(it, 0)
         }
@@ -804,16 +805,21 @@ class GlobalPlanner {
 
 
     private fun planeUpgrade(recipeTree: Map<String, ProcessedItem>, field: Field, best: State): State {
+        var current = best
         //upgrade productivity
-//        val productivity = upgradeManager.upgradeProductivity(best, recipeTree, field)
+//        current = upgradeManager.upgradeProductivity(current, recipeTree, field)
         //upgrade robots
-        val robots = upgradeManager.upgradeRobots(best, recipeTree, field)
+//        current = upgradeManager.upgradeRobotsTwo(current, recipeTree, field)
+        current = upgradeManager.upgradeRobots(current, recipeTree, field)
 
 
-        return robots
+        return current
     }
 
-    private fun planeDowngrade(upgrade: State): State {
+    private fun planeDowngrade(upgrade: State, fieldPrep: Field, recipeTree: Map<String, ProcessedItem>): State {
+        //todo: downgrade productivity modules
+        val productivity = upgradeManager.downgradeProductivity(upgrade, recipeTree, fieldPrep)
+
         //todo: downgrade speed modules
         //todo: downgrade inserters
         TODO("Not yet implemented")

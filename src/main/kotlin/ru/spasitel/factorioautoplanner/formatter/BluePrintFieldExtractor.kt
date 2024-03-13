@@ -310,6 +310,7 @@ class BluePrintFieldExtractor {
                 "express-underground-belt",
                 "logistic-chest-active-provider",
                 "logistic-chest-storage",
+                "filter-inserter",
                 "medium-electric-pole" -> {
                     val start = Cell((x - 0.5).roundToInt(), (y - 0.5).roundToInt())
                     val addBuilding = state.addBuilding(Utils.getBuilding(start, BuildingType.EMPTY))

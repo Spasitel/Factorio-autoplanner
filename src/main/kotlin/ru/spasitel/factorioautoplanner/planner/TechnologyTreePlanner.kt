@@ -85,6 +85,9 @@ class TechnologyTreePlanner {
                 else -> 1.4
             }
         }
+        if (processedItem.recipe.name in productivity_module_limitation_lvl1) {
+            amount /= 1.16 //todo: minor. module lvl
+        }
         val resultAmount = processedItem.recipe.result_count?.toDouble() ?: 1.0
         amount /= resultAmount
         processedItem.recipe.ingredients.forEach {
@@ -247,26 +250,37 @@ class TechnologyTreePlanner {
             "logistic-science-pack",
         )
 
+        val productivity_module_limitation_lvl1 = setOf(
+            "chemical-science-pack",
+            "military-science-pack",
+            "engine-unit",
+            "iron-stick",
+            "iron-gear-wheel",
+            "flying-robot-frame"
+
+        )
+
         val productivity_module_limitation = setOf(
+//            "iron-stick",
+//            "iron-gear-wheel",
+//            "engine-unit",
+//            "flying-robot-frame",
+//            "chemical-science-pack",
+//            "military-science-pack",
+
             "empty-barrel",
             "uranium-processing",
             "copper-cable",
-            "iron-stick",
-            "iron-gear-wheel",
             "advanced-circuit",
             "electronic-circuit",
             "processing-unit",
-            "engine-unit",
             "uranium-fuel-cell",
             "explosives",
-            "flying-robot-frame",
             "low-density-structure",
             "nuclear-fuel",
             "nuclear-fuel-reprocessing",
             "rocket-control-unit",
             "space-science-pack",
-            "chemical-science-pack",
-            "military-science-pack",
             "production-science-pack",
             "utility-science-pack",
             "kovarex-enrichment-process",

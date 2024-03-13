@@ -52,26 +52,40 @@ data class ProcessedItem(
 
                 else -> {}
             }
-            if (item in TechnologyTreePlanner.productivity_module_limitation) {
-                when (buildingType) {
-                    BuildingType.ASSEMBLER, BuildingType.ROCKET_SILO -> {
-                        result /= 1.4
-                    }
-
-                    BuildingType.SMELTER -> {
-                        result /= 1.2
-                    }
-
-                    BuildingType.CHEMICAL_PLANT -> {
-                        result /= 1.3
-                    }
-
-                    else -> {}
-                }
-            }
+            result /= productivityRatio(item, buildingType)
             result /= recipe.result_count?.toDouble() ?: 1.0
             result *= recipe.energy_required
             return result
+        }
+
+        fun productivityRatio(
+            item: String,
+            buildingType: BuildingType
+        ): Double {
+            if (item in TechnologyTreePlanner.productivity_module_limitation) {
+                when (buildingType) {
+                    BuildingType.ASSEMBLER -> {
+                        return 1 + 4 * 0.1
+                    }
+
+                    BuildingType.ROCKET_SILO -> {
+                        return 1.4
+                    }
+
+                    BuildingType.SMELTER -> {
+                        return 1.2
+                    }
+
+                    BuildingType.CHEMICAL_PLANT -> {
+                        return 1.3
+                    }
+
+                    else -> return 1.0
+                }
+            } else if (item in TechnologyTreePlanner.productivity_module_limitation_lvl1) {
+                return 1 + 4 * 0.04
+            }
+            return 1.0
         }
 
         private fun buildingType(recipe: RecipesDTOItem) =
