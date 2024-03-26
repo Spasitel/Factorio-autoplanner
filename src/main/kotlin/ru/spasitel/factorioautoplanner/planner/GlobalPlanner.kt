@@ -600,7 +600,7 @@ class GlobalPlanner {
         }
 
         val sortedByPerformance = sortedByDistance.sortedBy {
-            -current.performanceMap.getOrDefault(it, 0)
+            -current.performanceMap.getOrDefault(it, 0.0)
         }
 //            .sortedBy {
 //            if (Utils.isBetween(it, field.roboportsField)) 1 else 0
@@ -810,7 +810,7 @@ class GlobalPlanner {
 //        current = upgradeManager.upgradeProductivity(current, recipeTree, field)
         //upgrade robots
 //        current = upgradeManager.upgradeRobotsTwo(current, recipeTree, field)
-        current = upgradeManager.upgradeRobots(current, recipeTree, field)
+//        current = upgradeManager.upgradeRobots(current, recipeTree, field)
 
 
         return current
@@ -818,7 +818,7 @@ class GlobalPlanner {
 
     private fun planeDowngrade(upgrade: State, fieldPrep: Field, recipeTree: Map<String, ProcessedItem>): State {
         //todo: downgrade productivity modules
-        val productivity = upgradeManager.downgradeProductivity(upgrade, recipeTree, fieldPrep)
+        val productivity = upgradeManager.downgradeSpeed(upgrade, recipeTree, fieldPrep)
 
         //todo: downgrade speed modules
         //todo: downgrade inserters

@@ -3,10 +3,21 @@ package ru.spasitel.factorioautoplanner.data.building
 import ru.spasitel.factorioautoplanner.data.Direction
 import ru.spasitel.factorioautoplanner.data.LiquidConnection
 import ru.spasitel.factorioautoplanner.data.Place
+import ru.spasitel.factorioautoplanner.data.Utils
 import java.util.*
 
-data class ChemicalPlant(override val place: Place, val direction: Int, val recipe: String) : LiquidConnectionsBuilding,
+data class ChemicalPlant(override val place: Place, val direction: Int, val recipe: String, var moduleLvl: Int = 3) :
+    LiquidConnectionsBuilding,
     Building(place) {
+
+    fun speed(): Double {
+        return when (moduleLvl) {
+            1 -> 1.6
+            2 -> 1.9
+            3 -> 2.5
+            else -> 1.0
+        }
+    }
     override fun toJson(number: Int): String {
         return String.format(
             Locale.US,
@@ -15,7 +26,8 @@ data class ChemicalPlant(override val place: Place, val direction: Int, val reci
             recipe,
             place.start.x + type.size / 2.0,
             place.start.y + +type.size / 2.0,
-            direction
+            direction,
+            Utils.speedModule(moduleLvl)
         )
     }
 
@@ -43,7 +55,7 @@ data class ChemicalPlant(override val place: Place, val direction: Int, val reci
 
     companion object {
         private const val JSON =
-            "{\"entity_number\":%d,\"name\":\"chemical-plant\",\"recipe\":\"%s\",\"position\":{\"x\":%.1f,\"y\":%.1f},\"direction\":%d,\"items\":{\"speed-module-3\":3}},"
+            "{\"entity_number\":%d,\"name\":\"chemical-plant\",\"recipe\":\"%s\",\"position\":{\"x\":%.1f,\"y\":%.1f},\"direction\":%d,\"items\":{\"%s\":3}},"
     }
 
     override fun toString(): String {

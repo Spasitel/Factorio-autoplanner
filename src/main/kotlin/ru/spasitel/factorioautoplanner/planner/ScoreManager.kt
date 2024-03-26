@@ -3,6 +3,7 @@ package ru.spasitel.factorioautoplanner.planner
 import io.github.oshai.kotlinlogging.KotlinLogging
 import ru.spasitel.factorioautoplanner.data.ProcessedItem
 import ru.spasitel.factorioautoplanner.data.State
+import ru.spasitel.factorioautoplanner.data.Utils
 import ru.spasitel.factorioautoplanner.data.building.*
 
 class ScoreManager {
@@ -103,18 +104,18 @@ class ScoreManager {
         when (building.type) {
             BuildingType.ASSEMBLER -> {
                 var start = (building as Assembler).speed()
-                start += pair.first.performanceMap.getOrDefault(building.place.start, 0) * 0.5
+                start += pair.first.performanceMap.getOrDefault(building.place.start, 0.0)
                 return start
             }
 
             BuildingType.CHEMICAL_PLANT -> {
                 var start =
                     if (unit in TechnologyTreePlanner.productivity_module_limitation) { //todo: minor. module lvl
-                    0.55
-                } else {
-                    2.5
-                }
-                start += pair.first.performanceMap.getOrDefault(building.place.start, 0) * 0.5
+                        0.55
+                    } else {
+                        (building as ChemicalPlant).speed()
+                    }
+                start += pair.first.performanceMap.getOrDefault(building.place.start, 0.0)
                 return start
             }
 
@@ -122,48 +123,42 @@ class ScoreManager {
                 return pair.first.buildings.filter {
                     it.type == BuildingType.ASSEMBLER &&
                             (it as Assembler).recipe == unit
-                            && it.place.start.maxDistanceTo(building.place.start) < 6
-                }.size * 0.5
+                            && Utils.isBeaconAffect(building, it)
+                }.size * (building as Beacon).speed()
             }
 
             BuildingType.SMELTER -> {
                 var start =
                     if (unit in TechnologyTreePlanner.productivity_module_limitation) { //todo: minor. module lvl
-                    0.7
-                } else {
-                    2.0
-                }
-                start += pair.first.performanceMap.getOrDefault(building.place.start, 0) * 0.5
+                        0.7
+                    } else {
+                        2.0
+                    }
+                start += pair.first.performanceMap.getOrDefault(building.place.start, 0.0)
                 return start
             }
 
             BuildingType.ROCKET_SILO -> {
                 var start = 0.4
                 start +=
-                    pair.first.buildings.filter {
-                        val max = BuildingType.ROCKET_SILO.size + 2
-                        it.type == BuildingType.BEACON &&
-                                it.place.start.x - building.place.start.x in -5..max &&
-                                it.place.start.y - building.place.start.y in -5..max
-                    }.size * 0.5
+                    pair.first.buildings.filterIsInstance<Beacon>().filter {
+                        Utils.isBeaconAffect(it, building)
+                    }.sumOf { it.speed() }
                 return start
             }
 
             BuildingType.OIL_REFINERY -> {
-                var start = 2.5
+                var start = (building as OilRefinery).speed()
                 start +=
-                    pair.first.buildings.filter {
-                        val max = BuildingType.OIL_REFINERY.size + 2
-                        it.type == BuildingType.BEACON &&
-                                it.place.start.x - building.place.start.x in -5..max &&
-                                it.place.start.y - building.place.start.y in -5..max
-                    }.size * 0.5
+                    pair.first.buildings.filterIsInstance<Beacon>().filter {
+                        Utils.isBeaconAffect(it, building)
+                    }.sumOf { it.speed() }
                 return start
             }
 
             BuildingType.LAB -> {
                 var start = 0.7
-                start += pair.first.performanceMap.getOrDefault(building.place.start, 0) * 0.5
+                start += pair.first.performanceMap.getOrDefault(building.place.start, 0.0)
                 return start
             }
 
@@ -172,14 +167,20 @@ class ScoreManager {
     }
 
     fun calculateScore(greedy: State, recipeTree: Map<String, ProcessedItem>, log: Boolean): Pair<Double, String> {
-        return recipeTree.keys.filter { it !in TechnologyTreePlanner.base }
-            .map {
-                val score = calculateScoreForItem(greedy, it, recipeTree)
-                if (log) {
-                    val buildings = buildingsForUnit(it, greedy).size
-                    logger.debug { "For $it: buildings $buildings score $score" }
-                }
-                Pair(score, it)
-            }.minBy { it.first }
+        return scoreMap(greedy, recipeTree, log).minBy { it.first }
     }
+
+    fun scoreMap(
+        greedy: State,
+        recipeTree: Map<String, ProcessedItem>,
+        log: Boolean
+    ) = recipeTree.keys.filter { it !in TechnologyTreePlanner.base }
+        .map {
+            val score = calculateScoreForItem(greedy, it, recipeTree)
+            if (log) {
+                val buildings = buildingsForUnit(it, greedy).size
+                logger.debug { "For $it: buildings $buildings score $score" }
+            }
+            Pair(score, it)
+        }
 }

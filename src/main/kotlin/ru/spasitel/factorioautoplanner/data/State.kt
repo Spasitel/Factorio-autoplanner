@@ -1,5 +1,6 @@
 package ru.spasitel.factorioautoplanner.data
 
+import ru.spasitel.factorioautoplanner.data.building.Beacon
 import ru.spasitel.factorioautoplanner.data.building.Building
 import ru.spasitel.factorioautoplanner.data.building.BuildingType
 import ru.spasitel.factorioautoplanner.data.building.LiquidConnectionsBuilding
@@ -10,7 +11,7 @@ data class State(
     val buildings: Set<Building>,
     val map: Map<Cell, Building>,
     val size: Cell,
-    val performanceMap: Map<Cell, Int> = HashMap(),
+    val performanceMap: Map<Cell, Double> = HashMap(),
     val freeCells: Set<Cell> = allCells(size),
     val emptyCountScore: Int = (size.x - 1) * (size.y - 1) * 32 + (size.x + size.y - 2) * 16
 ) {
@@ -153,8 +154,8 @@ data class State(
                     newPerformanceMap[Cell(building.place.start.x + x, building.place.start.y + y)] =
                         newPerformanceMap.getOrDefault(
                             Cell(building.place.start.x + x, building.place.start.y + y),
-                            0
-                        ) + 1
+                            0.0
+                        ) + (building as Beacon).speed()
             newPerformanceMap
         }
 
@@ -223,7 +224,10 @@ data class State(
             for (x in -5..5)
                 for (y in -5..5)
                     newPerformanceMap[Cell(building.place.start.x + x, building.place.start.y + y)] =
-                        newPerformanceMap[Cell(building.place.start.x + x, building.place.start.y + y)]!! - 1
+                        newPerformanceMap[Cell(
+                            building.place.start.x + x,
+                            building.place.start.y + y
+                        )]!! - (building as Beacon).speed()
             newPerformanceMap
         }
 

@@ -1,12 +1,18 @@
 package ru.spasitel.factorioautoplanner.data.building
 
-import ru.spasitel.factorioautoplanner.data.Cell
-import ru.spasitel.factorioautoplanner.data.Direction
-import ru.spasitel.factorioautoplanner.data.LiquidConnection
-import ru.spasitel.factorioautoplanner.data.Place
+import ru.spasitel.factorioautoplanner.data.*
 import java.util.*
 
-data class OilRefinery(override val place: Place, val direction: Int) : LiquidConnectionsBuilding, Building(place) {
+data class OilRefinery(override val place: Place, val direction: Int, var moduleLvl: Int = 3) :
+    LiquidConnectionsBuilding, Building(place) {
+    fun speed(): Double {
+        return when (moduleLvl) {
+            1 -> 1.6
+            2 -> 1.9
+            3 -> 2.5
+            else -> 1.0
+        }
+    }
     override fun toJson(number: Int): String {
         return String.format(
             Locale.US,
@@ -14,7 +20,8 @@ data class OilRefinery(override val place: Place, val direction: Int) : LiquidCo
             number,
             place.start.x + type.size / 2.0,
             place.start.y + +type.size / 2.0,
-            direction
+            direction,
+            Utils.speedModule(moduleLvl)
         )
     }
 
@@ -25,7 +32,7 @@ data class OilRefinery(override val place: Place, val direction: Int) : LiquidCo
 
     companion object {
         private const val OIL_REFINERY =
-            "{\"entity_number\":%d,\"name\":\"oil-refinery\",\"recipe\":\"advanced-oil-processing\",\"position\":{\"x\":%.1f,\"y\":%.1f},\"direction\":%d,\"items\":{\"speed-module-3\":3}},"
+            "{\"entity_number\":%d,\"name\":\"oil-refinery\",\"recipe\":\"advanced-oil-processing\",\"position\":{\"x\":%.1f,\"y\":%.1f},\"direction\":%d,\"items\":{\"%s\":3}},"
     }
 
     fun getInputs(): Map<String, Cell> {

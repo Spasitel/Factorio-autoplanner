@@ -4,6 +4,7 @@ import io.github.oshai.kotlinlogging.KotlinLogging
 import ru.spasitel.factorioautoplanner.data.building.*
 import ru.spasitel.factorioautoplanner.formatter.Formatter
 import ru.spasitel.factorioautoplanner.simple.InsertersPlaces
+import kotlin.math.abs
 
 object Utils {
     private val logger = KotlinLogging.logger {}
@@ -24,6 +25,13 @@ object Utils {
         return cells
     }
 
+    fun speedModule(moduleLvl: Int): String = when (moduleLvl) {
+        1 -> "speed-module"
+        2 -> "speed-module-2"
+        3 -> "speed-module-3"
+        else -> throw IllegalArgumentException("Unknown module level $moduleLvl")
+    }
+
     fun getBuilding(
         start: Cell,
         type: BuildingType,
@@ -31,12 +39,13 @@ object Utils {
         liquid: String? = null,
         recipe: String? = null,
         kind: String = "stack-inserter",
-        items: MutableSet<String> = mutableSetOf()
+        items: MutableSet<String> = mutableSetOf(),
+        moduleLvl: Int = 3
     ): Building {
         val place = Place(cellsForBuilding(start, type.size), start)
 
         return when (type) {
-            BuildingType.BEACON -> Beacon(place)
+            BuildingType.BEACON -> Beacon(place, moduleLvl)
             BuildingType.SMELTER -> Smelter(place)
             BuildingType.PROVIDER_CHEST -> ProviderChest(place, items = items)
             BuildingType.REQUEST_CHEST -> RequestChest(place)
@@ -50,7 +59,7 @@ object Utils {
             BuildingType.OIL_REFINERY -> OilRefinery(place, direction!!)
             BuildingType.PIPE -> Pipe(place, liquid!!)
             BuildingType.UNDERGROUND_PIPE -> UndergroundPipe(place, liquid!!, direction!!)
-            BuildingType.CHEMICAL_PLANT -> ChemicalPlant(place, direction!!, recipe!!)
+            BuildingType.CHEMICAL_PLANT -> ChemicalPlant(place, direction!!, recipe!!, moduleLvl)
             BuildingType.ASSEMBLER -> Assembler(place, direction, recipe!!)
             BuildingType.LAB -> Lab(place)
             BuildingType.ROCKET_SILO -> RocketSilo(place, direction!!)
@@ -123,5 +132,22 @@ object Utils {
 
     fun isBetween(start: Cell, electricField: Pair<Cell, Cell>, shift: Int = 0): Boolean {
         return isBetween(start.x, start.y, electricField, shift)
+    }
+
+    fun isBeaconAffect(
+        beacon: Building,
+        to: Building
+    ): Boolean {
+        if (beacon.type != BuildingType.BEACON) {
+            throw IllegalArgumentException("First building should be beacon")
+        }
+        if (to.type.size == 3) {
+            return beacon.place.start.maxDistanceTo(to.place.start) < 6
+        }
+        val distanceX =
+            abs(beacon.place.start.x + beacon.type.size / 2.0 - to.place.start.x - to.type.size / 2.0) - to.type.size / 2.0
+        val distanceY =
+            abs(beacon.place.start.y + beacon.type.size / 2.0 - to.place.start.y - to.type.size / 2.0) - to.type.size / 2.0
+        return distanceX < 4 && distanceY < 4
     }
 }
