@@ -9,7 +9,7 @@ data class RequestChest(override val place: Place, val items: MutableMap<String,
         if (items.isNotEmpty()) {
             filters += ",\"request_filters\":["
             filters += items.entries.joinToString(",") { (item, count) ->
-                "{\"index\":${items.keys.indexOf(item)},\"name\":\"$item\",\"count\":$count}"
+                "{\"index\":${items.keys.indexOf(item) + 1},\"name\":\"$item\",\"count\":$count}"
             }
             filters += "]"
         }

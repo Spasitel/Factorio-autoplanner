@@ -12,6 +12,17 @@ import java.util.*
 internal class FormatterTest {
 
     @Test
+    fun testElectronic() {
+        val orig =
+            "0eNq9lNtugzAMht/F1zARCpSivck0oTR4rTVIoiRFqyrefUnRJtYV9aBuNyiOE/vzb5MDrNsdakPSQXUAEkpaqF4OYGkjeRv23F4jVEAOO4hA8i5YrdqQdSRisUXrYs2tpR5jbVRPDRoYIiDZ4AdUbIguRrOOi/eYpEXjflzOhtcIUDpyhCPX0djXctet/cmKXU0UgVbWx1EyYPjYcZakT3kEe78sS7/0aX35EkU4ZMMpFj4Gm2lm8lYaaprYHnMYJntfdOlchedg2ClMQ2ZkOQbyaM6otl7jlvekTLgoyIgdudr7mu9ob2Ssqy8oLpTWaGLdcocwFu4RwxCwJAlmp7nhLqSBZxiul4aFjm0Mojz15DMiLR7VwuSWFs7RZI+iYbfQsJOBKmbo8jsHKvnzgSKj5B+M0+K3MDPjlc5IVtwpGfuHf9A7HylWfvZZ8oId81aTpz6CHo0dyypZtlylyzJbLYpVMQyfPUENuw=="
+
+        val message = decode(orig)
+        val replace = message!!.replace(":3", ":10")
+        println(replace)
+        println(encode(replace))
+    }
+
+    @Test
     fun testDigits() {
         val orig =
             "0eNqV0N8KgyAUBvB3OdcGqdEfX2WMUZuMA3UUtViE7z4t2LrtTj/O75PjBsM4a+uQAqgN8GnIg7pt4PFN/ZizsFoNChZ0YU4JA+qnHBwTRQmRAdJLf0DxyC5IfpLikhQnKS9JeZJVvDPQFDCgPpbeL+uD5mnQLq3z084MxhoXUp81PgFD+bFUUjS8ZLCmAy+5jLkSg56S+X8sg0U7vxvR8qrpRNNWnay7OsYvr0V9nQ=="

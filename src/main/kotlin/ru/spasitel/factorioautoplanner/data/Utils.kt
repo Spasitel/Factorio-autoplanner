@@ -105,7 +105,6 @@ object Utils {
     }
 
     fun convertToJson(best: State): String? {
-        var bCount = 1
         var json = StringBuilder(
             String.format(
                 START_JSON,
@@ -117,8 +116,7 @@ object Utils {
         )
         for (b in best.buildings) {
             if (b.type == BuildingType.EMPTY || b.type == BuildingType.EMPTY2 || b.type == BuildingType.EMPTY3 || b.type == BuildingType.EMPTY4) continue
-            json.append(b.toJson(bCount))
-            bCount++
+            json.append(b.toJson())
         }
         json = StringBuilder(json.substring(0, json.length - 1))
         json.append(END_JSON)

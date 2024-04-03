@@ -58,9 +58,69 @@ class GlobalPlanner {
         val upgrade = planeUpgrade(recipeTree, fieldPrep, best)
 
         val downgrade = planeDowngrade(upgrade, fieldPrep, recipeTree)
-        //todo: set restricts for chests
+        val result = planeFinalChestsAndInserters(downgrade, fieldPrep, recipeTree)
         logger.info { "========= planeGlobal result =========" }
-        logger.info { Utils.convertToJson(downgrade) }
+        logger.info { Utils.convertToJson(result) }
+        logger.info { "Roboport score:" + RoboportsManager().planeRoboports(result, field, recipeTree) }
+    }
+
+    private fun planeFinalChestsAndInserters(
+        state: State,
+        field: Field,
+        recipeTree: Map<String, ProcessedItem>
+    ): State {
+        enumerateBuildings(state)
+        // set restricts for chests
+        // calculate provider chests with amount of items
+        val roboportsManager = RoboportsManager()
+        // calculate request chests with amount of items
+        val requests = roboportsManager.calculateRequestChests(state, field, recipeTree)
+        requests.forEach { (item, pairs) ->
+            pairs.forEach { (chest, amount) ->
+                chest.items[item] = (amount * 60).toInt() + 1
+            }
+        }
+        //todo: downgrade inserters
+        state.buildings.filterIsInstance<Inserter>().filter { state.map[it.from()] is RequestChest }
+            .filter { it.kind == "stack-inserter" }.forEach {
+                val amount = (state.map[it.from()] as RequestChest).items.map { c -> c.value }.sum()
+                //downgrade inserters
+                if (amount < 150) {
+                    it.kind = "inserter"
+                } else if (amount < 415) {
+                    it.kind = "fast-inserter"
+                }
+            }
+
+        val providers = roboportsManager.calculateProviderChests(state, field, recipeTree)
+        providers.forEach { (item, pairs) ->
+            pairs.forEach { (chest, a) ->
+                val amount = (a * 60).toInt() + 1
+                val buildings = scoreManager.buildingsForUnit(item, state)
+                val inserters = state.buildings.filterIsInstance<Inserter>().filter { it.to() == chest.place.start }
+                    .filter { state.map[it.from()]!! in buildings }
+                inserters.forEach { it.condition = Triple(chest.id, item, amount) }
+                inserters.forEach { chest.connections.add(it.id) }
+                inserters.forEach { inserter ->
+                    if (inserter.kind == "stack-inserter") {
+                        //downgrade inserters
+                        if (amount.div(inserters.size) < 150) {
+                            inserter.kind = "inserter"
+                        } else if (amount.div(inserters.size) < 415) {
+                            inserter.kind = "fast-inserter"
+                        }
+                    }
+                }
+            }
+        }
+
+        return state
+    }
+
+    private fun enumerateBuildings(downgrade: State) {
+        downgrade.buildings.forEach {
+            it.enumerate()
+        }
     }
 
     private fun printPredeployed(field: Field, recipeTree: Map<String, ProcessedItem>) {
@@ -817,12 +877,9 @@ class GlobalPlanner {
     }
 
     private fun planeDowngrade(upgrade: State, fieldPrep: Field, recipeTree: Map<String, ProcessedItem>): State {
-        //todo: downgrade productivity modules
-        val productivity = upgradeManager.downgradeSpeed(upgrade, recipeTree, fieldPrep)
-
-        //todo: downgrade speed modules
-        //todo: downgrade inserters
-        TODO("Not yet implemented")
+        //downgrade productivity modules - done by hand
+        //downgrade speed modules
+        return upgradeManager.downgradeSpeed(upgrade, recipeTree, fieldPrep)
     }
 
     companion object {

@@ -508,7 +508,7 @@ class GlobalUpgradeManager(private val globalPlanner: GlobalPlanner) {
 
         scoreManager.calculateScore(downgraded, recipeTree, true)
 
-        TODO("Not yet implemented")
+        return downgraded
     }
 
     private fun downgradeAssemblers(

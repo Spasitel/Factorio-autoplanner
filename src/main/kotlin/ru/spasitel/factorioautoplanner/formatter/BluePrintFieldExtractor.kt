@@ -573,6 +573,7 @@ class BluePrintFieldExtractor {
                             BuildingType.ASSEMBLER,
                             direction = entity.direction,
                             recipe = entity.recipe!!
+                            //todo: add module
                         )
                     )
                     if (addBuilding == null) {

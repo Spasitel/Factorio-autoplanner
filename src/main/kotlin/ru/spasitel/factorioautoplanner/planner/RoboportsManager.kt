@@ -47,7 +47,7 @@ class RoboportsManager {
         return result.map { it.value }.sum()
     }
 
-    private fun calculateRequestChests(
+    fun calculateRequestChests(
         state: State,
         field: Field,
         recipeTree: Map<String, ProcessedItem>
@@ -81,10 +81,10 @@ class RoboportsManager {
                         continue
                     }
                     //green and blue - do not request what made in chain
-                    if (ingredient.key == "electronic-circuit" && item == "processing-unit") {
+                    if ((ingredient.key == "iron-plate" || ingredient.key == "copper-plate") && item == "processing-unit") {
                         continue
                     }
-                    if (ingredient.key == "copper-cable" && item.split("#")[0] == "electronic-circuit") {
+                    if (ingredient.key == "copper-plate" && item.split("#")[0] == "electronic-circuit") {
                         continue
                     }
                     if (ingredient.key == "sulfur" && item == "sulfuric-acid") {
@@ -112,7 +112,7 @@ class RoboportsManager {
         return productivityOut / recipe.amount * recipe.ingredients[key]!!
     }
 
-    private fun calculateProviderChests(
+    fun calculateProviderChests(
         state: State,
         field: Field,
         recipeTree: Map<String, ProcessedItem>

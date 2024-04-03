@@ -6,9 +6,22 @@ import ru.spasitel.factorioautoplanner.data.Place
 import java.util.*
 
 
-data class Inserter(override val place: Place, val direction: Int, val kind: String = "stack-inserter") :
+data class Inserter(
+    override val place: Place,
+    val direction: Int,
+    var kind: String = "stack-inserter",
+    var condition: Triple<Int, String, Int>? = null // connection, item, amount
+) :
     Building(place) {
     override fun toJson(number: Int): String {
+        var connections = ""
+        if (condition != null) {
+            val (connection, item, amount) = condition!!
+            //,"control_behavior":{"circuit_condition":{"first_signal":{"type":"item","name":"copper-plate"},"constant":100,"comparator":"<"}},"connections":{"1":{"red":[{"entity_id":1}]}}
+            connections =
+                ",\"control_behavior\":{\"circuit_condition\":{\"first_signal\":{\"type\":\"item\",\"name\":\"$item\"},\"constant\":$amount,\"comparator\":\"<\"}},\"connections\":{\"1\":{\"red\":[{\"entity_id\":$connection}]}}"
+        }
+
         return String.format(
             Locale.US,
             INSERTER,
@@ -16,7 +29,8 @@ data class Inserter(override val place: Place, val direction: Int, val kind: Str
             kind,
             place.start.x + type.size / 2.0,
             place.start.y + type.size / 2.0,
-            direction
+            direction,
+            connections
         )
     }
 
@@ -57,6 +71,6 @@ data class Inserter(override val place: Place, val direction: Int, val kind: Str
 
     companion object {
         const val INSERTER =
-            "{\"entity_number\":%d,\"name\":\"%s\",\"position\":{\"x\":%.1f,\"y\":%.1f},\"direction\":%d},"
+            "{\"entity_number\":%d,\"name\":\"%s\",\"position\":{\"x\":%.1f,\"y\":%.1f},\"direction\":%d%s},"
     }
 }
