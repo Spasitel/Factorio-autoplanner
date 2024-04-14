@@ -1,19 +1,19 @@
 package ru.spasitel.factorioautoplanner.data.building
 
 import ru.spasitel.factorioautoplanner.data.Place
-import java.util.*
 
 data class TrainStop(override val place: Place, val name: String, val direction: Int) : Building(place) {
     override fun toJson(number: Int): String {
-        return String.format(
-            Locale.US,
-            JSON,
-            number,
-            place.start.x + type.size / 2.0,
-            place.start.y + type.size / 2.0,
-            name,
-            direction
-        )
+        return ""
+//        return String.format(
+//            Locale.US,
+//            JSON,
+//            number,
+//            place.start.x + type.size / 2.0,
+//            place.start.y + type.size / 2.0,
+//            name,
+//            direction
+//        )
     }
 
     override val type: BuildingType

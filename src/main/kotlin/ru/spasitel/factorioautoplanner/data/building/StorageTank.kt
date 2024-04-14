@@ -4,7 +4,6 @@ import ru.spasitel.factorioautoplanner.data.Cell
 import ru.spasitel.factorioautoplanner.data.Direction
 import ru.spasitel.factorioautoplanner.data.LiquidConnection
 import ru.spasitel.factorioautoplanner.data.Place
-import java.util.*
 
 data class StorageTank(override val place: Place, override var liquid: String, val direction: Int) : LiquidBuilding,
     Building(place) {
@@ -19,14 +18,15 @@ data class StorageTank(override val place: Place, override var liquid: String, v
         }
 
     override fun toJson(number: Int): String {
-        return String.format(
-            Locale.US,
-            JSON,
-            number,
-            place.start.x + type.size / 2.0,
-            place.start.y + type.size / 2.0,
-            direction
-        )
+        return ""
+//        return String.format(
+//            Locale.US,
+//            JSON,
+//            number,
+//            place.start.x + type.size / 2.0,
+//            place.start.y + type.size / 2.0,
+//            direction
+//        )
     }
 
     override fun getLiquidConnections(): List<LiquidConnection> {

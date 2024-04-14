@@ -4,7 +4,6 @@ import ru.spasitel.factorioautoplanner.data.Utils
 import ru.spasitel.factorioautoplanner.formatter.Formatter
 import ru.spasitel.factorioautoplanner.simple.building.*
 import java.util.*
-import java.util.function.Consumer
 import kotlin.math.abs
 
 object SimpleMain {
@@ -25,14 +24,14 @@ object SimpleMain {
         max = 0.0
         best = start
         val next = generateNext(start)
-        next.forEach(Consumer { s: State ->
+        next.forEach { s: State ->
             val scoreByArea = s.score / s.area
             println(
                 "Calculating " + s.buildings.stream()
                     .filter { b: Building -> b.type == Type.SMELTER || b.type == Type.BEACON }.findAny()
             )
             calculateForStart(scoreByArea, s)
-        })
+        }
         printBest()
     }
 
@@ -61,14 +60,14 @@ object SimpleMain {
                 }
                 bestCount = count
             }
-            next.forEach(Consumer { s: State ->
+            next.forEach { s: State ->
                 val scoreByArea = s.score / s.area
                 if (stateScores.containsKey(scoreByArea)) {
                     stateScores[scoreByArea]!!.add(s)
                 } else {
                     stateScores[scoreByArea] = ArrayList(listOf(s))
                 }
-            })
+            }
         }
     }
 
@@ -144,7 +143,7 @@ object SimpleMain {
         if (building.type == Type.SMELTER || building.type == Type.BEACON) {
             area = building.x * 18 + building.y + 8
             if (building.type == Type.SMELTER) {
-                score += 0.7
+                score += 1.4
             }
             for (b in state.buildings) {
                 if (b.type != Type.SMELTER && b.type != Type.BEACON) continue
@@ -154,7 +153,7 @@ object SimpleMain {
                     0.coerceAtLeast(3 * (b.x - building.x + 2))
                 }
                 if (b.type == building.type) continue
-                if (abs(b.x - building.x) < 6 && abs(b.y - building.y) < 6) score += 0.5
+                if (abs(b.x - building.x) < 6 && abs(b.y - building.y) < 6) score += 0.2
             }
         }
         return State(withChests.buildings, score, area, withChests.map)

@@ -29,6 +29,7 @@ class BluePrintFieldExtractor {
         calculateLiquids(blueprint, state)
 
         state = fixRecipes(state)
+        markSkipInsertersAndChests(state)
         return Field(
             state, roboportsField, chestField,
             Pair(
@@ -36,6 +37,24 @@ class BluePrintFieldExtractor {
                 chestField.second.move(Direction.DOWN, 4).move(Direction.RIGHT, 4)
             )
         )
+    }
+
+    private fun markSkipInsertersAndChests(state: State) {
+        state.buildings.filterIsInstance<Inserter>().forEach {
+            if (state.map[it.from()] !is Assembler && state.map[it.from()] !is ChemicalPlant && state.map[it.from()] !is Smelter
+                && state.map[it.to()] !is Assembler && state.map[it.to()] !is ChemicalPlant && state.map[it.from()] !is Smelter
+            ) {
+                it.skip = true
+            }
+        }
+        state.buildings.filter { it.type == BuildingType.PROVIDER_CHEST || it.type == BuildingType.REQUEST_CHEST }
+            .forEach { chest ->
+                if (state.buildings.filterIsInstance<Inserter>()
+                        .none { (it.to() == chest.place.start || it.from() == chest.place.start) && it.skip.not() }
+                ) {
+                    chest.skip = true
+                }
+            }
     }
 
     private fun fixRecipes(state: State): State {

@@ -1,7 +1,6 @@
 package ru.spasitel.factorioautoplanner.data.building
 
 import ru.spasitel.factorioautoplanner.data.Place
-import java.util.*
 
 data class Pump(override val place: Place, val direction: Int) : Building(place) {
     override val type: BuildingType
@@ -21,14 +20,15 @@ data class Pump(override val place: Place, val direction: Int) : Building(place)
     }
 
     override fun toJson(number: Int): String {
-        return String.format(
-            Locale.US,
-            JSON,
-            number,
-            place.start.x + if (alongX()) type.size / 2.0 else 0.5,
-            place.start.y + if (!alongX()) type.size / 2.0 else 0.5,
-            direction
-        )
+        return ""
+//        return String.format(
+//            Locale.US,
+//            JSON,
+//            number,
+//            place.start.x + if (alongX()) type.size / 2.0 else 0.5,
+//            place.start.y + if (!alongX()) type.size / 2.0 else 0.5,
+//            direction
+//        )
     }
 
     override fun toString(): String {

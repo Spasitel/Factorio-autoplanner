@@ -4,6 +4,7 @@ import ru.spasitel.factorioautoplanner.data.Place
 
 abstract class Building(open val place: Place) {
     var id: Int = -1
+    var skip = false
     abstract fun toJson(number: Int): String
     abstract val type: BuildingType
     abstract val symbol: Char
@@ -11,6 +12,9 @@ abstract class Building(open val place: Place) {
     fun toJson(): String {
         if (id == -1) {
             id = idCounter++
+        }
+        if (skip) {
+            return ""
         }
         return toJson(id)
     }

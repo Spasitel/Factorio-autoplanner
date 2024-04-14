@@ -17,6 +17,6 @@ data class Beacon(override val x: Int, override val y: Int) : Building(x, y) {
 
     companion object {
         private const val BEACON =
-            "{\"entity_number\":%d,\"name\":\"beacon\",\"position\":{\"x\":%.1f,\"y\":%.1f},\"items\":{\"speed-module-3\":2}},"
+            "{\"entity_number\":%d,\"name\":\"beacon\",\"position\":{\"x\":%.1f,\"y\":%.1f},\"items\":{\"speed-module\":2}},"
     }
 }

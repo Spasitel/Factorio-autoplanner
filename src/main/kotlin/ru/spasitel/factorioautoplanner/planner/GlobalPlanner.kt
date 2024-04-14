@@ -85,9 +85,9 @@ class GlobalPlanner {
             .filter { it.kind == "stack-inserter" }.forEach {
                 val amount = (state.map[it.from()] as RequestChest).items.map { c -> c.value }.sum()
                 //downgrade inserters
-                if (amount < 150) {
+                if (amount < 100) {
                     it.kind = "inserter"
-                } else if (amount < 415) {
+                } else if (amount < 300) {
                     it.kind = "fast-inserter"
                 }
             }
