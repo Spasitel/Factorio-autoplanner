@@ -90,7 +90,7 @@ class ScoreManager {
         "light-oil" -> state.buildings.filter { it.type == BuildingType.CHEMICAL_PLANT && (it as ChemicalPlant).recipe == "light-oil-cracking" }
         "solid-fuel" -> state.buildings.filter { it.type == BuildingType.CHEMICAL_PLANT && (it as ChemicalPlant).recipe == "solid-fuel-from-light-oil" }
         "battery", "plastic-bar", "sulfuric-acid", "sulfur", "lubricant" -> state.buildings.filter { it.type == BuildingType.CHEMICAL_PLANT && (it as ChemicalPlant).recipe == unit }
-        "stone-brick" -> state.buildings.filter { it.type == BuildingType.SMELTER }
+        "stone-brick", "copper-plate", "iron-plate" -> state.buildings.filter { it.type == BuildingType.SMELTER }
         "space-science-pack" -> state.buildings.filter { it.type == BuildingType.ROCKET_SILO }
         "science-approximation" -> state.buildings.filter { it.type == BuildingType.LAB }
         else -> state.buildings.filter { b -> b.type == BuildingType.ASSEMBLER && (b as Assembler).recipe == unit }
@@ -120,10 +120,8 @@ class ScoreManager {
             }
 
             BuildingType.BEACON -> {
-                return pair.first.buildings.filter {
-                    it.type == BuildingType.ASSEMBLER &&
-                            (it as Assembler).recipe == unit
-                            && Utils.isBeaconAffect(building, it)
+                return buildingsForUnit(unit, pair.first).filter {
+                    Utils.isBeaconAffect(building, it)
                 }.size * (building as Beacon).speed()
             }
 
@@ -132,7 +130,7 @@ class ScoreManager {
                     if (unit in TechnologyTreePlanner.productivity_module_limitation) { //todo: minor. module lvl
                         0.7
                     } else {
-                        2.0
+                        1.4 //2.0
                     }
                 start += pair.first.performanceMap.getOrDefault(building.place.start, 0.0)
                 return start

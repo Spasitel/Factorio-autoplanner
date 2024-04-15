@@ -22,7 +22,7 @@ data class Smelter(override val place: Place) : Building(place) {
 
     companion object {
         private const val SMELTER =
-            "{\"entity_number\":%d,\"name\":\"electric-furnace\",\"position\":{\"x\":%.1f,\"y\":%.1f},\"items\":{\"speed-module-3\":2}},"
+            "{\"entity_number\":%d,\"name\":\"electric-furnace\",\"position\":{\"x\":%.1f,\"y\":%.1f},\"items\":{\"speed-module\":2}}," //todo add modules
     }
 
     override fun toString(): String {

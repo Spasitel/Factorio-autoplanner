@@ -91,6 +91,7 @@ data class ProcessedItem(
         private fun buildingType(recipe: RecipesDTOItem) =
             when {
                 recipe.category == "chemistry" -> BuildingType.CHEMICAL_PLANT
+                recipe.category == "smelting" -> BuildingType.SMELTER
                 recipe.name == "stone-brick" -> BuildingType.SMELTER
                 recipe.name == "space-science-pack" -> BuildingType.ROCKET_SILO
                 recipe.name == "science-approximation" -> BuildingType.LAB

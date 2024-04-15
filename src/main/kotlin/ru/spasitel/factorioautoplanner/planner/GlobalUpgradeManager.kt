@@ -23,6 +23,9 @@ class GlobalUpgradeManager(private val globalPlanner: GlobalPlanner) {
         logger.info { Utils.convertToJson(bestOne) }
         scoreManager.calculateScore(bestOne, recipeTree, true)
 
+        if (GlobalPlanner.isSmelter) {
+            return bestOne
+        }
         val bestTwo = removeTwo(bestOne, recipeTree, field)
         logger.info { "After remove two:" }
         logger.info { Utils.convertToJson(bestTwo) }
@@ -106,6 +109,10 @@ class GlobalUpgradeManager(private val globalPlanner: GlobalPlanner) {
             while (toRemoveSet.isNotEmpty()) {
                 val (building, building2) = toRemoveSet.removeAt(0)
                 logger.info { "Remove two: $building, $building2" }
+                if (GlobalPlanner.isSmelter && building.place.start.maxDistanceTo(building2.place.start) > 5) {
+                    logger.info { "Remove two too far" }
+                    continue
+                }
 
                 val removed1 = removeWithConnectors(best, building)
                 val removed = removeWithConnectors(removed1, building2)

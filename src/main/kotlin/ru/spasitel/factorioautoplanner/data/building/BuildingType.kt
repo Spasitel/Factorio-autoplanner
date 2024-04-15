@@ -24,5 +24,6 @@ enum class BuildingType(var size: Int) {
     LAB(3),
     ROBOPORT(4),
     TRAIN_STOP(2),
+    ELECTRIC_MINING_DRILL(3),
 
 }

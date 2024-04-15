@@ -38,7 +38,7 @@ object Utils {
         direction: Int? = null,
         liquid: String? = null,
         recipe: String? = null,
-        kind: String = "stack-inserter",
+        kind: String = "fast-inserter",
         items: MutableSet<String> = mutableSetOf(),
         moduleLvl: Int = 3
     ): Building {
@@ -66,6 +66,7 @@ object Utils {
             BuildingType.STEEL_CHEST -> SteelChest(place)
             BuildingType.ROBOPORT -> Roboport(place)
             BuildingType.TRAIN_STOP -> TrainStop(place, recipe!!, direction!!)
+            BuildingType.ELECTRIC_MINING_DRILL -> ElectricMiningDrill(place)
 
             else -> throw IllegalArgumentException("Unknown building type $type")
         }

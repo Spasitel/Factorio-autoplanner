@@ -14,22 +14,22 @@ class GlobalPlanner {
     private val upgradeManager = GlobalUpgradeManager(this)
 
     fun planeGlobal(recipeTree: Map<String, ProcessedItem>, fieldPrep: Field, fieldFull: Field) {
-//        val decodeField = Formatter.decode(fieldBlueprint)
-//        val dto = Gson().fromJson(decodeField, BlueprintDTO::class.java)
-//        val field = BluePrintFieldExtractor().transformBlueprintToField(dto)
-        val field = fieldFull
-        printPredeployed(field, recipeTree)
+        if (!isSmelter) {
+            printPredeployed(fieldFull, recipeTree)
+        }
 
         Utils.checkLiquids = true
 
         var double = false
-        var min = 4.1
-        var max = 4.5
+        var min = 250.0
+        var max = 251.5
         var best: State? = null
-        while (max - min > 0.05) {
+        val delta = if (isSmelter) 1.0 else 0.05
+
+        while (max - min > delta) {
             val mid = (max + min) / 2
             logger.info { "========= planeGlobal $min $max : $mid =========" }
-            val greedy = planeGreedy(recipeTree, field, mid)
+            val greedy = planeGreedy(recipeTree, fieldFull, mid)
             if (greedy != null) {
                 logger.info { "Greedy result: " + Utils.convertToJson(greedy) }
             } else {
@@ -57,11 +57,23 @@ class GlobalPlanner {
         }
         val upgrade = planeUpgrade(recipeTree, fieldPrep, best)
 
-        val downgrade = planeDowngrade(upgrade, fieldPrep, recipeTree)
-        val result = planeFinalChestsAndInserters(downgrade, fieldPrep, recipeTree)
+        val downgrade = if (isSmelter) upgrade else
+            planeDowngrade(upgrade, fieldPrep, recipeTree)
+        val result = if (isSmelter) planeSmelterChests(downgrade, fieldPrep) else
+            planeFinalChestsAndInserters(downgrade, fieldPrep, recipeTree)
         logger.info { "========= planeGlobal result =========" }
         logger.info { Utils.convertToJson(result) }
-        logger.info { "Roboport score:" + RoboportsManager().planeRoboports(result, field, recipeTree) }
+        if (!isSmelter) {
+            logger.info { "Roboport score:" + RoboportsManager().planeRoboports(result, fieldFull, recipeTree) }
+        }
+    }
+
+    private fun planeSmelterChests(downgrade: State, fieldPrep: Field): State {
+        downgrade.buildings.filterIsInstance<RequestChest>().filter { fieldPrep.state.map[it.place.start] == null }
+            .forEach {
+                it.items["$smelterOre-ore"] = 300
+            }
+        return downgrade
     }
 
     private fun planeFinalChestsAndInserters(
@@ -80,7 +92,6 @@ class GlobalPlanner {
                 chest.items[item] = (amount * 60).toInt() + 1
             }
         }
-        //todo: downgrade inserters
         state.buildings.filterIsInstance<Inserter>().filter { state.map[it.from()] is RequestChest }
             .filter { it.kind == "stack-inserter" }.forEach {
                 val amount = (state.map[it.from()] as RequestChest).items.map { c -> c.value }.sum()
@@ -164,16 +175,88 @@ class GlobalPlanner {
             "rocket-fuel",
             "solid-fuel",
         )
-        var state = planeSpecial(recipeTree, field, mid) ?: return null
+        var state =
+            if (isSmelter)
+                if (smelterType == "steel") {
+                    planeSteel(recipeTree, field, mid)
+                } else {
+                    field.state
+                }
+            else
+                planeSpecial(recipeTree, field, mid) ?: return null
 
 
-        val done = planed.plus(TechnologyTreePlanner.base).toMutableSet()
+        val done =
+            if (isSmelter)
+                mutableSetOf("copper-ore", "iron-ore")
+            else
+                planed.plus(TechnologyTreePlanner.base).toMutableSet()
         while (recipeTree.keys.minus(done).isNotEmpty()) {
             val item = calculateNextItem(recipeTree, done)
             state = planeGreedyItem(recipeTree, item, state, field, mid) ?: return null
             done.add(item)
         }
         return state
+    }
+
+    private fun planeSteel(recipeTree: Map<String, ProcessedItem>, field: Field, mid: Double): State {
+        return planeUnit(field.state, field, recipeTree, mid, "steel-plate", ::stepSteel)!!
+    }
+
+    private fun stepSteel(
+        start: Cell,
+        current: State,
+        field: Field,
+        recipeTree: Map<String, ProcessedItem>,
+        unit: String
+    ): Pair<State?, Double?> {
+        val greenWithConnections =
+            TreeSet<Pair<State, Building>> { a, b -> compareForUnit(a, b, "steel-plate") }
+        val greenBuilding = Utils.getBuilding(
+            start,
+            BuildingType.SMELTER
+        )
+        val green = current.addBuilding(greenBuilding) ?: return Pair(null, null)
+        // add chest and inserters
+        val planeChest = planeChests(green, field, greenBuilding, "iron-plate")
+        //todo
+        //todo
+        //todo
+        planeChest.map { g -> g to greenBuilding }.forEach { g -> greenWithConnections.add(g) }
+        //add copper wire
+
+        for (greenWithConnection in greenWithConnections) {
+            val wireWithConnections =
+                TreeSet<Pair<State, Building>> { a, b -> compareForUnit(a, b, "copper-cable#green") }
+            val wirePositions = placeConnected(
+                greenWithConnection.first,
+                greenWithConnection.second,
+                field,
+                "copper-cable#green"
+            )
+            for (wirePosition in wirePositions) {
+                val wireBuilding = Utils.getBuilding(
+                    wirePosition,
+                    BuildingType.ASSEMBLER,
+                    recipe = "copper-cable#green"
+                )
+                val wire = greenWithConnection.first.addBuilding(wireBuilding) ?: continue
+                val planeConnection =
+                    planeConnection(wire, field, wireBuilding, greenWithConnection.second) ?: continue
+                // add chest and inserters
+                val planeChestWire =
+                    planeChests(planeConnection, field, wireBuilding, "copper-cable#green")
+                planeChestWire.map { g -> g to wireBuilding }.forEach { g -> wireWithConnections.add(g) }
+            }
+
+            if (wireWithConnections.isNotEmpty()) {
+                val bestWire = wireWithConnections.first()
+                val bestWireState = bestWire.first
+                val bestWireScore = scoreManager.calculateScoreForItem(bestWireState, "electronic-circuit", recipeTree)
+                return Pair(bestWireState, bestWireScore)
+            }
+        }
+        return Pair(null, null)
     }
 
     private fun planeSpecial(recipeTree: Map<String, ProcessedItem>, field: Field, mid: Double): State? {
@@ -719,7 +802,7 @@ class GlobalPlanner {
 
         val buildingsForUnit = when (unit) {
             //blue and green - calculate which in chain is worse
-            "processing-unit", "electronic-circuit" -> findLeastPerformed(current, unit)
+            "processing-unit", "electronic-circuit", "steel-plate" -> findLeastPerformed(current, unit)
             else -> scoreManager.buildingsForUnit(unit, current)
         }
 
@@ -779,6 +862,7 @@ class GlobalPlanner {
 
     private fun findLeastPerformed(current: State, unit: String): List<Building> {
         val result = mutableListOf<Building>()
+        //todo steel-plate
         val buildings =
             current.buildings.filter { it.type == BuildingType.ASSEMBLER && (it as Assembler).recipe == unit }
         buildings.forEach {
@@ -814,7 +898,13 @@ class GlobalPlanner {
     ): Pair<State?, Double?> {
         val withConnections =
             TreeSet<Pair<State, Building>> { a, b -> compareForUnit(a, b, unit) }
-        val type = if (unit == "stone-brick") BuildingType.SMELTER else BuildingType.ASSEMBLER
+        val type = if (unit in setOf(
+                "stone-brick",
+                "copper-plate",
+                "iron-plate",
+                "steel-plate"
+            )
+        ) BuildingType.SMELTER else BuildingType.ASSEMBLER
         val building = Utils.getBuilding(
             start,
             type,
@@ -846,7 +936,13 @@ class GlobalPlanner {
                 a.hashCode().compareTo(b.hashCode())
         }
 
-        val type = if (unit == "stone-brick") BuildingType.SMELTER else BuildingType.ASSEMBLER
+        val type = if (unit in setOf(
+                "stone-brick",
+                "copper-plate",
+                "iron-plate",
+                "steel-plate"
+            )
+        ) BuildingType.SMELTER else BuildingType.ASSEMBLER
         val building = Utils.getBuilding(
             start,
             type,
@@ -867,7 +963,7 @@ class GlobalPlanner {
     private fun planeUpgrade(recipeTree: Map<String, ProcessedItem>, field: Field, best: State): State {
         var current = best
         //upgrade productivity
-//        current = upgradeManager.upgradeProductivity(current, recipeTree, field)
+        current = upgradeManager.upgradeProductivity(current, recipeTree, field)
         //upgrade robots
 //        current = upgradeManager.upgradeRobotsTwo(current, recipeTree, field)
 //        current = upgradeManager.upgradeRobots(current, recipeTree, field)
@@ -885,11 +981,28 @@ class GlobalPlanner {
     companion object {
         private val log = KotlinLogging.logger {}
 
+        val isSmelter = true
+        val smelterType = "steel"
+        val smelterOre = "iron"
+
         @JvmStatic
         fun main(args: Array<String>) {
             log.info { "Start" }
+            smelter()
+        }
+
+        private fun smelter() {
+            val tree = TechnologyTreePlanner.smelterTree()
+            GlobalPlanner().planeGlobal(
+                tree,
+                BluePrintFieldExtractor.FIELD_SMELTER,
+                BluePrintFieldExtractor.FIELD_SMELTER
+            )
+        }
+
+        private fun science() {
             val tree = TechnologyTreePlanner.scienceRoundTree()
-            GlobalPlanner().planeGlobal(tree, BluePrintFieldExtractor.FIELD_PREP, BluePrintFieldExtractor.FIELD_FULL)
+//            GlobalPlanner().planeGlobal(tree, BluePrintFieldExtractor.FIELD_PREP, BluePrintFieldExtractor.FIELD_FULL)
         }
     }
 }

@@ -88,7 +88,9 @@ class GreedyPlanner {
             if (field != null && !Utils.isBetween(chest.second, field.chestField)) continue
             if (field != null && withoutChests.map.containsKey(chest.second) &&
                 withoutChests.map[chest.second]!! is ProviderChest &&
-                (withoutChests.map[chest.second] as ProviderChest).items.first() in TechnologyTreePlanner.base
+                ((withoutChests.map[chest.second] as ProviderChest).items.isEmpty() ||
+                        (withoutChests.map[chest.second] as ProviderChest).items.first() in TechnologyTreePlanner.base
+                        )
             ) {
                 continue
             }

@@ -8,6 +8,7 @@ import ru.spasitel.factorioautoplanner.data.auto.BlueprintDTO
 import ru.spasitel.factorioautoplanner.data.auto.Entity
 import ru.spasitel.factorioautoplanner.data.auto.Position
 import ru.spasitel.factorioautoplanner.data.building.*
+import ru.spasitel.factorioautoplanner.planner.GlobalPlanner
 import kotlin.math.abs
 import kotlin.math.roundToInt
 
@@ -25,17 +26,34 @@ class BluePrintFieldExtractor {
 //        val electricField = calculateElectricField(blueprint)
 
         var state = transformBuildingsToEmpty(blueprint)
-        calculateChests(blueprint, state)
-        calculateLiquids(blueprint, state)
+        if (!GlobalPlanner.isSmelter) {
+            calculateChests(blueprint, state)
+            calculateLiquids(blueprint, state)
 
-        state = fixRecipes(state)
+            state = fixRecipes(state)
+        }
         markSkipInsertersAndChests(state)
-        return Field(
-            state, roboportsField, chestField,
+        val assemblersField = if (GlobalPlanner.isSmelter) {
+            val drills = state.buildings.filterIsInstance<ElectricMiningDrill>()
+            val minX = if (chestField.first.x > 0) chestField.first.x else
+                drills.minOf { it.place.start.x }
+            val minY = if (chestField.first.y > 0) chestField.first.y else
+                drills.minOf { it.place.start.y }
+            val maxX = if (chestField.second.x < state.size.x - 3) chestField.second.x else
+                drills.maxOf { it.place.start.x } + 2
+            val maxY = if (chestField.second.y < state.size.y - 3) chestField.second.y else
+                drills.maxOf { it.place.start.y } + 2
+            Pair(Cell(minX, minY), Cell(maxX, maxY))
+
+        } else {
             Pair(
                 chestField.first.move(Direction.UP, 4).move(Direction.LEFT, 4),
                 chestField.second.move(Direction.DOWN, 4).move(Direction.RIGHT, 4)
             )
+        }
+        return Field(
+            state, roboportsField, chestField,
+            assemblersField
         )
     }
 
@@ -236,8 +254,8 @@ class BluePrintFieldExtractor {
             return blueprintDTO
         }
 
-        val startX = blueprintDTO.blueprint.entities.minOf { it.position.x }.roundToInt() - 4
-        val startY = blueprintDTO.blueprint.entities.minOf { it.position.y }.roundToInt() - 4
+        val startX = blueprintDTO.blueprint.entities.minOf { it.position.x }.roundToInt() - 2
+        val startY = blueprintDTO.blueprint.entities.minOf { it.position.y }.roundToInt() - 2
 
         val entities = blueprintDTO.blueprint.entities.map {
             Entity(
@@ -330,7 +348,8 @@ class BluePrintFieldExtractor {
                 "logistic-chest-active-provider",
                 "logistic-chest-storage",
                 "filter-inserter",
-                "medium-electric-pole" -> {
+                "medium-electric-pole",
+                "constant-combinator" -> {
                     val start = Cell((x - 0.5).roundToInt(), (y - 0.5).roundToInt())
                     val addBuilding = state.addBuilding(Utils.getBuilding(start, BuildingType.EMPTY))
                     if (addBuilding == null) {
@@ -367,6 +386,17 @@ class BluePrintFieldExtractor {
                     } else {
                         state = addBuilding
                     }
+                }
+
+                "electric-mining-drill" -> {
+                    val start = Cell((x - 1.5).roundToInt(), (y - 1.5).roundToInt())
+                    val addBuilding = state.addBuilding(Utils.getBuilding(start, BuildingType.ELECTRIC_MINING_DRILL))
+                    if (addBuilding == null) {
+                        logger.info { "Can't add building $entity" }
+                    } else {
+                        state = addBuilding
+                    }
+
                 }
 
 
@@ -750,9 +780,10 @@ class BluePrintFieldExtractor {
         const val CURVED_RAILS =
             "0eNqlmt1O4zAQhd/F1ymKf8fuqyC0Km3ERiopSgJahPru21JBuyij8Z65a0H9cnpsxx8mH+Zx/9q9jP0wm/WH6beHYTLr+w8z9U/DZn/+2fz+0pm16efu2TRm2Dyf342bfm+OjemHXffHrO2xET+yPzz109xvV9vf3TSvpvkwbp66G4g7PjSmG+Z+7rtLiM8377+G1+fHbjxd5Zu1fR3fut3qM0VjXg7T6TOH4XzpE2dFLjfm/fSihPaE3/Vjt738/jPnD6qTEi5e4C5+XcLdxeMC1iNYumL9MjYg2ChiI4INYgkJwNpWTEsI1oppc+38am/m1wKnAPHaLH5r2yJcEr+2tf/PTUUeJeuUXC6vrxynlLn7QFjCAksrZXnF2qjkcjWk2hoSV0NcwgKL63QFOW5Wcrl6C8KNYl7XKrlMXgesNjqH/B5DhuuUXMtwa1cbeW6a+SUsspF5kuMiO5mPcr3IVuaKzCUll+shK0WB4xYll+nBI5ubszK3Whrt1/T1+d/pS0tYZLVZeTp4rzQmZth8UHK5vMhya5OcNym5XF6q3TQLdzdLS1hktbUV9SKbW8livQHZ3IoX8war5HJ5tSrJcb2Sy/WgdUkuL+SS8rII1S5J3F3SLWERl6SKuIhLUpC5RemozLBFyCXl3SJapaNyeZ2Sy+VFdjd/7eH8cpELyeR13M4vF7mQTAY5L7K7eS/nRWTStzI3K7lcD5BMJpGbWt3hG9dDQv52c07O63Tyy+aFbDLJXMgmSe4Bskn5/pCS7kSO7QFZb22U82Yll8sLnUw6kUvQyaQVeyBIJ+X7A0E6Kd8fCNHJLM9fCkoulxfSSXn+UlJyubyQT2Y5L+STFf0Wnady3Iz4JHmxh4ysN5L9ITsll8uLrLck7285KLlcXsgnb7jEcJPSUzmu1icTw9X6JJe3KL2PyVu0PsnkLZBPyj0U6HQyyz1APunlvEHJ5fJGpfdxXK1Pcj1ofZLjan2S66EovY+4/3RD55OlAozscDlXgJ3uxI+r2LZe6VIsGJLKUFEFZJWuApyUYLYKyCtrBg8Sy1hRRVEaFZfYQmpZsaShp0xSrkgMHVb+3JwfmsvjauubB+Ia89aN0+V0O9tAxRFln71Px+NfWo2uSw=="
 
-        val FIELD_FULL = readFieldFromFile("/field_full.txt")
-
-        val FIELD_PREP = readFieldFromFile("/field_prep.txt")
+        //        val FIELD_FULL = readFieldFromFile("/field_full.txt")
+//
+//        val FIELD_PREP = readFieldFromFile("/field_prep.txt")
+        val FIELD_SMELTER = readFieldFromFile("/" + GlobalPlanner.smelterType + ".txt")
 
         @JvmStatic
         fun readFieldFromFile(name: String): Field {
@@ -764,8 +795,8 @@ class BluePrintFieldExtractor {
 
         @JvmStatic
         fun main(args: Array<String>) {
-            val toField = FIELD_FULL
-            val fixed = toField.state
+//            val toField = FIELD_FULL
+//            val fixed = toField.state
 
 //            var test = State(emptySet(), emptyMap(), fixed.size)
 //            for (x in 3 until fixed.size.x - 3) {*
@@ -782,7 +813,7 @@ class BluePrintFieldExtractor {
 //                    }
 //                }
 //            }
-            Utils.printBest(fixed)
+//            Utils.printBest(fixed)
         }
     }
 }

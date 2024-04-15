@@ -162,22 +162,25 @@ class TechnologyTreePlanner {
 
 
         val EMPTY_RECIPE = RecipesDTOItem(0.0, emptyList(), null, "empty", null, null, null)
-        val base = setOf(
-            "iron-plate",
-            "copper-plate",
-            "steel-plate",
-            "coal",
-            "stone",
-            "water",
-            "crude-oil",
-            "heavy-oil",
-            "light-oil",
-            "petroleum-gas",
+        val base = if (GlobalPlanner.isSmelter)
+            setOf("iron-ore", "copper-ore")
+        else
+            setOf(
+                "iron-plate",
+                "copper-plate",
+                "steel-plate",
+                "coal",
+                "stone",
+                "water",
+                "crude-oil",
+                "heavy-oil",
+                "light-oil",
+                "petroleum-gas",
 //            "sulfuric-acid",
 //            "sulfur",
 //            "lubricant",
 //            "rocket-fuel",
-        )
+            )
 
         fun scienceRoundTree(): Map<String, ProcessedItem> {
             val recipes = TechnologyTreePlanner().readRecipesFromFile()
@@ -224,6 +227,15 @@ class TechnologyTreePlanner {
                 }
             }
             return result
+        }
+
+        fun smelterTree(): Map<String, ProcessedItem> {
+            val recipes = TechnologyTreePlanner().readRecipesFromFile()
+            val toBuild = mapOf(
+                GlobalPlanner.smelterType + "-plate" to 1.0
+            )
+            return TechnologyTreePlanner().createRecipeTree(setOf(GlobalPlanner.smelterOre + "-ore"), toBuild, recipes)
+
         }
 
         val productivity_module_possible_replace = setOf(
