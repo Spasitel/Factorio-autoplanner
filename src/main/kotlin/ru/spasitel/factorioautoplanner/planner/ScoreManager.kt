@@ -21,7 +21,7 @@ class ScoreManager {
         productivity: Double
     ): Double {
         val buildings = buildingsForUnit(unit, state)
-        val result = if (unit in setOf("electronic-circuit", "processing-unit", "rocket-fuel")) {
+        val result = if (unit in setOf("electronic-circuit", "processing-unit", "rocket-fuel", "steel-plate")) {
             buildings.sumOf { calculateScoreForMultiBuildings(state, it, unit).first }
         } else {
             buildings.sumOf { calculateScoreForBuilding(Pair(state, it), unit) }
@@ -73,7 +73,17 @@ class ScoreManager {
                     productivity = cableProductivity
                     building = cable
                 }
+            }
 
+            "steel-plate" -> {
+                val inserter = state.buildings.filterIsInstance<Inserter>()
+                    .first { it.to() in building.place.cells && state.map[it.from()] is Smelter }
+                val cable = (state.map[inserter.from()] as Smelter)
+                val cableProductivity = calculateScoreForBuilding(Pair(state, cable), "iron-plate")
+                if (cableProductivity < productivity) {
+                    productivity = cableProductivity
+                    building = cable
+                }
             }
 
         }
@@ -85,14 +95,16 @@ class ScoreManager {
         unit: String,
         state: State
     ) = when (unit) {
-        "crude-oil" -> state.buildings.filter { it.type == BuildingType.OIL_REFINERY }
+        "crude-oil" -> state.buildings.filterIsInstance<OilRefinery>()
         "heavy-oil" -> state.buildings.filter { it.type == BuildingType.CHEMICAL_PLANT && (it as ChemicalPlant).recipe == "heavy-oil-cracking" }
         "light-oil" -> state.buildings.filter { it.type == BuildingType.CHEMICAL_PLANT && (it as ChemicalPlant).recipe == "light-oil-cracking" }
         "solid-fuel" -> state.buildings.filter { it.type == BuildingType.CHEMICAL_PLANT && (it as ChemicalPlant).recipe == "solid-fuel-from-light-oil" }
         "battery", "plastic-bar", "sulfuric-acid", "sulfur", "lubricant" -> state.buildings.filter { it.type == BuildingType.CHEMICAL_PLANT && (it as ChemicalPlant).recipe == unit }
-        "stone-brick", "copper-plate", "iron-plate" -> state.buildings.filter { it.type == BuildingType.SMELTER }
-        "space-science-pack" -> state.buildings.filter { it.type == BuildingType.ROCKET_SILO }
-        "science-approximation" -> state.buildings.filter { it.type == BuildingType.LAB }
+        "stone-brick", "copper-plate", "iron-plate" -> state.buildings.filterIsInstance<Smelter>()
+        "space-science-pack" -> state.buildings.filterIsInstance<RocketSilo>()
+        "science-approximation" -> state.buildings.filterIsInstance<Lab>()
+        "steel-plate" -> state.buildings.filter { it.type == BuildingType.SMELTER && (it as Smelter).recipe == "steel-plate" }
+
         else -> state.buildings.filter { b -> b.type == BuildingType.ASSEMBLER && (b as Assembler).recipe == unit }
     }
 

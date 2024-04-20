@@ -279,8 +279,12 @@ data class State(
     }
 
     override fun hashCode(): Int {
-        return number
+        var result = buildings.hashCode()
+        result = 31 * result + map.hashCode()
+        result = 31 * result + size.hashCode()
+        return result
     }
+
 
     companion object {
         var count = 0

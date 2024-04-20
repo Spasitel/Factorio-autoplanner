@@ -31,17 +31,24 @@ class BluePrintFieldExtractor {
             calculateLiquids(blueprint, state)
 
             state = fixRecipes(state)
+        } else if (GlobalPlanner.smelterType == "steel") {
+            state.buildings.filterIsInstance<Smelter>().filter {
+                state.buildings.filterIsInstance<Inserter>()
+                    .any { i -> i.to() in it.place.cells && state.map[i.from()] is Smelter }
+            }.forEach {
+                it.recipe = "steel-plate"
+            }
         }
         markSkipInsertersAndChests(state)
         val assemblersField = if (GlobalPlanner.isSmelter) {
             val drills = state.buildings.filterIsInstance<ElectricMiningDrill>()
-            val minX = if (chestField.first.x > 0) chestField.first.x else
+            val minX = if (chestField.first.x > 4) chestField.first.x - 4 else
                 drills.minOf { it.place.start.x }
-            val minY = if (chestField.first.y > 0) chestField.first.y else
+            val minY = if (chestField.first.y > 4) chestField.first.y - 4 else
                 drills.minOf { it.place.start.y }
-            val maxX = if (chestField.second.x < state.size.x - 3) chestField.second.x else
+            val maxX = if (chestField.second.x < state.size.x - 7) chestField.second.x + 4 else
                 drills.maxOf { it.place.start.x } + 2
-            val maxY = if (chestField.second.y < state.size.y - 3) chestField.second.y else
+            val maxY = if (chestField.second.y < state.size.y - 7) chestField.second.y + 4 else
                 drills.maxOf { it.place.start.y } + 2
             Pair(Cell(minX, minY), Cell(maxX, maxY))
 
@@ -51,10 +58,28 @@ class BluePrintFieldExtractor {
                 chestField.second.move(Direction.DOWN, 4).move(Direction.RIGHT, 4)
             )
         }
+        if (GlobalPlanner.isSmelter) {
+            state = removeUnnecessaryBuildings(state, assemblersField)
+        }
         return Field(
             state, roboportsField, chestField,
             assemblersField
         )
+    }
+
+    private fun removeUnnecessaryBuildings(state: State, assemblersField: Pair<Cell, Cell>): State {
+        val newField = Pair(
+            assemblersField.first.move(Direction.UP, 4).move(Direction.LEFT, 4),
+            assemblersField.second.move(Direction.DOWN, 4).move(Direction.RIGHT, 4)
+        )
+        val toRemove = state.buildings.filter {
+            !Utils.isBetween(it.place.start, newField)
+        }
+        var result = state
+        toRemove.forEach {
+            result = result.removeBuilding(it)
+        }
+        return result
     }
 
     private fun markSkipInsertersAndChests(state: State) {
@@ -330,7 +355,7 @@ class BluePrintFieldExtractor {
         return Pair(roboportsField, chestField)
     }
 
-    private fun transformBuildingsToEmpty(blueprintDTO: BlueprintDTO): State {
+    fun transformBuildingsToEmpty(blueprintDTO: BlueprintDTO): State {
         val size = Cell(
             blueprintDTO.blueprint.entities.maxOf { it.position.x }.roundToInt() + 6,
             blueprintDTO.blueprint.entities.maxOf { it.position.y }.roundToInt() + 6

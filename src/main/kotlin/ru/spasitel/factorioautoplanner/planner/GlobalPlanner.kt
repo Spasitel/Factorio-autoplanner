@@ -21,8 +21,8 @@ class GlobalPlanner {
         Utils.checkLiquids = true
 
         var double = false
-        var min = 250.0
-        var max = 251.5
+        var min = 600.0
+        var max = 601.5
         var best: State? = null
         val delta = if (isSmelter) 1.0 else 0.05
 
@@ -161,6 +161,9 @@ class GlobalPlanner {
 
 
     private fun planeGreedy(recipeTree: Map<String, ProcessedItem>, field: Field, mid: Double): State? {
+        if (isSmelter && smelterType == "steel") {
+            return planeSteel(recipeTree, field, mid)
+        }
         val planed = setOf(
             "processing-unit",
             "electronic-circuit",
@@ -175,20 +178,21 @@ class GlobalPlanner {
             "rocket-fuel",
             "solid-fuel",
         )
+
         var state =
             if (isSmelter)
-                if (smelterType == "steel") {
-                    planeSteel(recipeTree, field, mid)
-                } else {
-                    field.state
-                }
+                field.state
             else
                 planeSpecial(recipeTree, field, mid) ?: return null
 
 
         val done =
             if (isSmelter)
-                mutableSetOf("copper-ore", "iron-ore")
+                if (smelterType == "steel") {
+                    mutableSetOf("iron-plate")
+                } else {
+                    mutableSetOf("copper-ore", "iron-ore")
+                }
             else
                 planed.plus(TechnologyTreePlanner.base).toMutableSet()
         while (recipeTree.keys.minus(done).isNotEmpty()) {
@@ -203,7 +207,7 @@ class GlobalPlanner {
         return planeUnit(field.state, field, recipeTree, mid, "steel-plate", ::stepSteel)!!
     }
 
-    private fun stepSteel(
+    fun stepSteel(
         start: Cell,
         current: State,
         field: Field,
@@ -214,50 +218,100 @@ class GlobalPlanner {
             TreeSet<Pair<State, Building>> { a, b -> compareForUnit(a, b, "steel-plate") }
         val greenBuilding = Utils.getBuilding(
             start,
-            BuildingType.SMELTER
+            BuildingType.SMELTER,
+            recipe = "steel-plate"
         )
         val green = current.addBuilding(greenBuilding) ?: return Pair(null, null)
         // add chest and inserters
-        val planeChest = planeChests(green, field, greenBuilding, "iron-plate")
-        //todo
-        //todo
-        //todo
+        val planeChest = planeChests(green, field, greenBuilding, "steel-plate", withInput = false)
         planeChest.map { g -> g to greenBuilding }.forEach { g -> greenWithConnections.add(g) }
         //add copper wire
 
         for (greenWithConnection in greenWithConnections) {
             val wireWithConnections =
-                TreeSet<Pair<State, Building>> { a, b -> compareForUnit(a, b, "copper-cable#green") }
+                TreeSet<Pair<State, Building>> { a, b -> compareForUnit(a, b, "iron-plate#steel") }
             val wirePositions = placeConnected(
                 greenWithConnection.first,
                 greenWithConnection.second,
                 field,
-                "copper-cable#green"
+                "iron-plate#steel"
             )
             for (wirePosition in wirePositions) {
                 val wireBuilding = Utils.getBuilding(
                     wirePosition,
-                    BuildingType.ASSEMBLER,
-                    recipe = "copper-cable#green"
+                    BuildingType.SMELTER
                 )
                 val wire = greenWithConnection.first.addBuilding(wireBuilding) ?: continue
                 val planeConnection =
                     planeConnection(wire, field, wireBuilding, greenWithConnection.second) ?: continue
                 // add chest and inserters
                 val planeChestWire =
-                    planeChests(planeConnection, field, wireBuilding, "copper-cable#green")
+                    planeChests(planeConnection, field, wireBuilding, "iron-plate#steel")
                 planeChestWire.map { g -> g to wireBuilding }.forEach { g -> wireWithConnections.add(g) }
             }
 
             if (wireWithConnections.isNotEmpty()) {
                 val bestWire = wireWithConnections.first()
                 val bestWireState = bestWire.first
-                val bestWireScore = scoreManager.calculateScoreForItem(bestWireState, "electronic-circuit", recipeTree)
+                val bestWireScore = scoreManager.calculateScoreForItem(bestWireState, "steel-plate", recipeTree)
                 return Pair(bestWireState, bestWireScore)
             }
         }
         return Pair(null, null)
     }
+
+
+    fun stepAllSteel(
+        start: Cell,
+        current: State,
+        field: Field,
+        recipeTree: Map<String, ProcessedItem>,
+        unit: String
+    ): SortedSet<Pair<State?, Double?>> {
+
+        val result = TreeSet<Pair<State?, Double?>> { a, b ->
+            if (a.second!! != b.second!!) a.second!!.compareTo(b.second!!) else
+                a.hashCode().compareTo(b.hashCode())
+        }
+
+        val building = Utils.getBuilding(
+            start,
+            BuildingType.SMELTER,
+            recipe = "steel-plate"
+        )
+        val withBuilding = current.addBuilding(building) ?: return sortedSetOf(Pair(null, null))
+        // add chest and inserters
+        val planeChest = planeChests(withBuilding, field, building, "steel-plate", withInput = false)
+        planeChest.forEach { st ->
+
+            val wirePositions = placeConnected(
+                st,
+                building,
+                field,
+                "iron-plate#steel"
+            )
+            for (wirePosition in wirePositions) {
+                val wireBuilding = Utils.getBuilding(
+                    wirePosition,
+                    BuildingType.SMELTER
+                )
+                val wire = st.addBuilding(wireBuilding) ?: continue
+                val planeConnection =
+                    planeConnection(wire, field, wireBuilding, building) ?: continue
+                // add chest and inserters
+                val planeChestWire =
+                    planeChests(planeConnection, field, wireBuilding, "iron-plate#steel")
+
+                planeChestWire.forEach {
+                    val bestWireScore = scoreManager.calculateScoreForItem(it, unit, recipeTree)
+                    result.add(Pair(it, bestWireScore))
+                }
+            }
+
+        }
+        return result
+    }
+
 
     private fun planeSpecial(recipeTree: Map<String, ProcessedItem>, field: Field, mid: Double): State? {
         val delta = 0.7
@@ -341,7 +395,7 @@ class GlobalPlanner {
         var nextScore: Double? = null
         if (score > 0) {
             next = planeBeacon(current, field, unit, recipeTree)
-            if (next != null && (unit == "processing-unit" || unit == "electronic-circuit")) {
+            if (next != null && (unit == "processing-unit" || unit == "electronic-circuit" || unit == "steel-plate")) {
                 next = planeBeacon(next, field, unit, recipeTree)
             }
             if (next != null && unit == "processing-unit") {
@@ -612,13 +666,16 @@ class GlobalPlanner {
 
 
     fun planeChests(
-        planeLiquid: State,
+        state: State,
         field: Field,
         building: Building,
-        unit: String
+        unit: String,
+        withInput: Boolean = true
     ): List<State> {
-        val withInputChest =
-            GreedyPlanner().addChests(planeLiquid, building, BuildingType.REQUEST_CHEST, field = field)
+        val withInputChest = if (withInput)
+            GreedyPlanner().addChests(state, building, BuildingType.REQUEST_CHEST, field = field)
+        else
+            setOf(state)
         if (!unit.contains("#")) {
             val result = mutableListOf<State>()
             for (withInputChestState in withInputChest) {
@@ -812,7 +869,7 @@ class GlobalPlanner {
                 val newState = current.addBuilding(beacon)
                 if (newState != null) {
                     val newScore =
-                        if (unit == "processing-unit" || unit == "electronic-circuit")
+                        if (unit == "processing-unit" || unit == "electronic-circuit" || unit == "steel-plate")
                             scoreManager.calculateScoreForItem(newState, unit, recipeTree) else
                             scoreManager.calculateScoreForBuilding(Pair(newState, beacon), unit)
                     if (best == null || newScore > score
@@ -863,7 +920,9 @@ class GlobalPlanner {
     private fun findLeastPerformed(current: State, unit: String): List<Building> {
         val result = mutableListOf<Building>()
         //todo steel-plate
-        val buildings =
+        val buildings = if (unit == "steel-plate")
+            current.buildings.filterIsInstance<Smelter>().filter { it.recipe == "steel-plate" }
+        else
             current.buildings.filter { it.type == BuildingType.ASSEMBLER && (it as Assembler).recipe == unit }
         buildings.forEach {
             val score = scoreManager.calculateScoreForMultiBuildings(current, it, unit)
@@ -982,7 +1041,7 @@ class GlobalPlanner {
         private val log = KotlinLogging.logger {}
 
         val isSmelter = true
-        val smelterType = "steel"
+        val smelterType = "iron"
         val smelterOre = "iron"
 
         @JvmStatic

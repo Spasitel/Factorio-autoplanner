@@ -1,10 +1,7 @@
 package ru.spasitel.factorioautoplanner.planner
 
 import io.github.oshai.kotlinlogging.KotlinLogging
-import ru.spasitel.factorioautoplanner.data.Field
-import ru.spasitel.factorioautoplanner.data.ProcessedItem
-import ru.spasitel.factorioautoplanner.data.State
-import ru.spasitel.factorioautoplanner.data.Utils
+import ru.spasitel.factorioautoplanner.data.*
 import ru.spasitel.factorioautoplanner.data.building.*
 import kotlin.math.min
 
@@ -14,10 +11,13 @@ class GlobalUpgradeManager(private val globalPlanner: GlobalPlanner) {
     private val roboportsManager = RoboportsManager()
 
     fun upgradeProductivity(current: State, recipeTree: Map<String, ProcessedItem>, field: Field): State {
-        val best = bestFill(current, recipeTree, field, limit = 10)
+        val best = bestFill(current, recipeTree, field, limit = 5)
         logger.info { "After fill:" }
         logger.info { Utils.convertToJson(best) }
         scoreManager.calculateScore(best, recipeTree, true)
+        if (GlobalPlanner.isSmelter && GlobalPlanner.smelterType == "steel") {
+            return best
+        }
         val bestOne = removeOne(best, recipeTree, field)
         logger.info { "After remove one:" }
         logger.info { Utils.convertToJson(bestOne) }
@@ -59,9 +59,13 @@ class GlobalUpgradeManager(private val globalPlanner: GlobalPlanner) {
             var localBestScore = bestScore
             while (toRemove.isNotEmpty()) {
                 val building = toRemove.removeAt(0)
+                if (!best.buildings.contains(building)) {
+                    logger.info { "Remove one already removed $building" }
+                    continue
+                }
                 logger.info { "Remove one: $building" }
                 val removed = removeWithConnectors(best, building)
-                val current = bestFillAll(removed, recipeTree, field)
+                val current = bestFillAll(removed, recipeTree, field, building)
                 if (isDifferent(current, best, building)) {
                     changed = true
                     val newScore = scoreManager.calculateScore(current, recipeTree, false)
@@ -73,7 +77,7 @@ class GlobalUpgradeManager(private val globalPlanner: GlobalPlanner) {
                         logger.error { "Remove one problem $localBestScore to ${newScore.first}" }
                         logger.info { Utils.convertToJson(removed) }
                         logger.info { Utils.convertToJson(best) }
-                        val again = bestFillAll(removed, recipeTree, field)
+                        val again = bestFillAll(removed, recipeTree, field, removed = building)
                         logger.info { Utils.convertToJson(again) }
                     }
                     best = current
@@ -116,7 +120,7 @@ class GlobalUpgradeManager(private val globalPlanner: GlobalPlanner) {
 
                 val removed1 = removeWithConnectors(best, building)
                 val removed = removeWithConnectors(removed1, building2)
-                val current = bestFillAll(removed, recipeTree, field)
+                val current = bestFillAll(removed, recipeTree, field, removed = building)
 
                 val newScore = scoreManager.calculateScore(current, recipeTree, false)
                 logger.info { "Remove two update best ${newScore.second}: ${newScore.first}" }
@@ -127,7 +131,7 @@ class GlobalUpgradeManager(private val globalPlanner: GlobalPlanner) {
                     logger.error { "Remove two problem $localBestScore to ${newScore.first}" }
                     logger.info { Utils.convertToJson(removed) }
                     logger.info { Utils.convertToJson(best) }
-                    val again = bestFillAll(removed, recipeTree, field)
+                    val again = bestFillAll(removed, recipeTree, field, removed = building)
                     logger.info { Utils.convertToJson(again) }
                 }
                 best = current
@@ -224,6 +228,11 @@ class GlobalUpgradeManager(private val globalPlanner: GlobalPlanner) {
             logger.info { "Updating ${min.second}, ${min.first}. Map counts: $assembler, $smelter, $beacon" }
 //            logger.trace { Utils.convertToJson(best) }
             val special = min.second in setOf("electronic-circuit", "processing-unit")
+            val stepUnit =
+                if (GlobalPlanner.isSmelter && GlobalPlanner.smelterType == "steel")
+                    globalPlanner::stepSteel
+                else
+                    globalPlanner::stepUnit
             best = globalPlanner.planeSingleStep(
                 min.first,
                 best,
@@ -231,7 +240,7 @@ class GlobalUpgradeManager(private val globalPlanner: GlobalPlanner) {
                 min.second,
                 recipeTree,
                 mutableSetOf(),
-                globalPlanner::stepUnit,
+                stepUnit,
                 limit = limit,
                 special = special
             ).first ?: break
@@ -243,21 +252,34 @@ class GlobalUpgradeManager(private val globalPlanner: GlobalPlanner) {
         start: State,
         recipeTree: Map<String, ProcessedItem>,
         field: Field,
+        removed: Building,
         limit: Int = 9999
     ): State {
         var best = start
         var bestScore = 0.0
         val todo = mutableSetOf(start)
+        val done = mutableSetOf<SimpleState>()
         while (todo.isNotEmpty()) {
             val current = todo.maxBy { it.buildings.size }
             todo.remove(current)
-
+            val simple = SimpleState.fromState(current)
+            if (simple in done) {
+                logger.info { "Already done ${done.size}" }
+                continue
+            }
+            done.add(simple)
 
             val min = scoreManager.calculateScore(current, recipeTree, false)
-            val assembler = current.buildings.filterIsInstance<Assembler>().size
-            val smelter = current.buildings.filterIsInstance<Smelter>().size
-            val beacon = current.buildings.filterIsInstance<Beacon>().size
-            logger.info { "Updating ${min.second}, ${min.first}. Map counts (b/a/s): $beacon, $assembler, $smelter. Todo ${todo.size}" }
+            val added =
+                (current.buildings - start.buildings).filter { it.type == BuildingType.BEACON || it.type == BuildingType.ASSEMBLER || it.type == BuildingType.SMELTER }
+            logger.info { "Updating ${min.second}, ${min.first}. Todo ${todo.size}. Trying $added" }
+
+            if (GlobalPlanner.isSmelter) {
+                if (added.any { it.place.start.maxDistanceTo(removed.place.start) > 9 }) {
+                    logger.info { "Too far" }
+                    continue
+                }
+            }
 //            logger.trace { Utils.convertToJson(current) }
             if (min.first > bestScore ||
                 (min.first == bestScore && current.freeCells.size > best.freeCells.size) ||
@@ -269,6 +291,10 @@ class GlobalUpgradeManager(private val globalPlanner: GlobalPlanner) {
             }
 
             val special = min.second in setOf("electronic-circuit", "processing-unit")
+            val stepAllUnit = if (GlobalPlanner.isSmelter && GlobalPlanner.smelterType == "steel")
+                globalPlanner::stepAllSteel
+            else
+                globalPlanner::stepAllUnit
             val next = globalPlanner.planeAllSingleStep(
                 min.first,
                 current,
@@ -276,7 +302,7 @@ class GlobalUpgradeManager(private val globalPlanner: GlobalPlanner) {
                 min.second,
                 recipeTree,
                 mutableSetOf(),
-                globalPlanner::stepAllUnit,
+                stepAllUnit,
                 limit = limit,
                 special = special
             )
@@ -293,12 +319,29 @@ class GlobalUpgradeManager(private val globalPlanner: GlobalPlanner) {
         if (building.type == BuildingType.BEACON) {
             return newBest.removeBuilding(building)
         }
+        if (GlobalPlanner.isSmelter && GlobalPlanner.smelterType == "steel") {
+            val smelter = building as Smelter
+            val inserter = if (smelter.recipe == "steel-plate") {
+                newBest.buildings.filterIsInstance<Inserter>()
+                    .firstOrNull { it.to() in building.place.cells && newBest.map[it.from()] is Smelter }
+            } else {
+                newBest.buildings.filterIsInstance<Inserter>()
+                    .firstOrNull { it.from() in building.place.cells && newBest.map[it.to()] is Smelter }
+            }
+            if (inserter != null) {
+                var result = newBest.removeBuilding(inserter)
+                result = removeWithConnectors(result, result.map[inserter.from()]!!)
+                result = removeWithConnectors(result, result.map[inserter.to()]!!)
+                return result
+            }
+        }
         val connections = newBest.buildings.filterIsInstance<Inserter>()
             .filter {
                 (it.to() in building.place.cells && newBest.map[it.from()] is RequestChest) ||
                         (it.from() in building.place.cells && newBest.map[it.to()] is ProviderChest)
             }
-        if (connections.size != 2 &&
+        if (!GlobalPlanner.isSmelter &&
+            connections.size != 2 &&
             !(connections.size == 1 &&
                     building.type == BuildingType.ASSEMBLER &&
                     (building as Assembler).recipe.contains("#"))

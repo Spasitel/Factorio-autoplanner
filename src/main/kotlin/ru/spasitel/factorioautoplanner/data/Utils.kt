@@ -3,6 +3,7 @@ package ru.spasitel.factorioautoplanner.data
 import io.github.oshai.kotlinlogging.KotlinLogging
 import ru.spasitel.factorioautoplanner.data.building.*
 import ru.spasitel.factorioautoplanner.formatter.Formatter
+import ru.spasitel.factorioautoplanner.planner.GlobalPlanner
 import ru.spasitel.factorioautoplanner.simple.InsertersPlaces
 import kotlin.math.abs
 
@@ -44,11 +45,19 @@ object Utils {
     ): Building {
         val place = Place(cellsForBuilding(start, type.size), start)
 
+
         return when (type) {
             BuildingType.BEACON -> Beacon(place, moduleLvl)
-            BuildingType.SMELTER -> Smelter(place)
+            BuildingType.SMELTER -> Smelter(place, recipe)
             BuildingType.PROVIDER_CHEST -> ProviderChest(place, items = items)
-            BuildingType.REQUEST_CHEST -> RequestChest(place)
+            BuildingType.REQUEST_CHEST -> {
+                val rItems = HashMap<String, Int>()
+                if (GlobalPlanner.isSmelter) {
+                    rItems["${GlobalPlanner.smelterOre}-ore"] = 300
+                }
+                RequestChest(place, rItems)
+            }
+
             BuildingType.EMPTY -> EmptySpace(place, 1)
             BuildingType.EMPTY2 -> EmptySpace(place, 2)
             BuildingType.EMPTY3 -> EmptySpace(place, 3)

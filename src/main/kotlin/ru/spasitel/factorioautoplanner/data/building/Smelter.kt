@@ -4,7 +4,7 @@ import ru.spasitel.factorioautoplanner.data.Place
 import java.util.*
 
 
-data class Smelter(override val place: Place) : Building(place) {
+data class Smelter(override val place: Place, var recipe: String?) : Building(place) {
     override fun toJson(number: Int): String {
         return String.format(
             Locale.US,
