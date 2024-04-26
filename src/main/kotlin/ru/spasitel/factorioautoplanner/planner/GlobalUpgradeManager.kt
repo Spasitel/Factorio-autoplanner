@@ -15,9 +15,9 @@ class GlobalUpgradeManager(private val globalPlanner: GlobalPlanner) {
         logger.info { "After fill:" }
         logger.info { Utils.convertToJson(best) }
         scoreManager.calculateScore(best, recipeTree, true)
-        if (GlobalPlanner.isSmelter && GlobalPlanner.smelterType == "steel") {
-            return best
-        }
+//        if (GlobalPlanner.isSmelter && GlobalPlanner.smelterType == "steel") {
+//            return best
+//        }
         val bestOne = removeOne(best, recipeTree, field)
         logger.info { "After remove one:" }
         logger.info { Utils.convertToJson(bestOne) }
@@ -66,24 +66,24 @@ class GlobalUpgradeManager(private val globalPlanner: GlobalPlanner) {
                 logger.info { "Remove one: $building" }
                 val removed = removeWithConnectors(best, building)
                 val current = bestFillAll(removed, recipeTree, field, building)
-                if (isDifferent(current, best, building)) {
-                    changed = true
-                    val newScore = scoreManager.calculateScore(current, recipeTree, false)
-                    logger.info { "Remove one update best ${newScore.second}: ${newScore.first}" }
-                    logger.info { Utils.convertToJson(current) }
-                    if (newScore.first > localBestScore) {
-                        localBestScore = newScore.first
-                    } else if (newScore.first < localBestScore) {
-                        logger.error { "Remove one problem $localBestScore to ${newScore.first}" }
-                        logger.info { Utils.convertToJson(removed) }
-                        logger.info { Utils.convertToJson(best) }
-                        val again = bestFillAll(removed, recipeTree, field, removed = building)
-                        logger.info { Utils.convertToJson(again) }
-                    }
-                    best = current
-                } else {
-                    logger.info { "Remove one not different" }
+//                if (isDifferent(current, best, building)) {
+                changed = true
+                val newScore = scoreManager.calculateScore(current, recipeTree, false)
+                logger.info { "Remove one update best ${newScore.second}: ${newScore.first}" }
+                logger.info { Utils.convertToJson(current) }
+                if (newScore.first > localBestScore) {
+                    localBestScore = newScore.first
+                } else if (newScore.first < localBestScore) {
+                    logger.error { "Remove one problem $localBestScore to ${newScore.first}" }
+                    logger.info { Utils.convertToJson(removed) }
+                    logger.info { Utils.convertToJson(best) }
+                    val again = bestFillAll(removed, recipeTree, field, removed = building)
+                    logger.info { Utils.convertToJson(again) }
                 }
+                best = current
+//                } else {
+//                    logger.info { "Remove one not different" }
+//                }
             }
         }
         return best
@@ -181,7 +181,9 @@ class GlobalUpgradeManager(private val globalPlanner: GlobalPlanner) {
                 it.type != BuildingType.BEACON ||
                         !notTouch.any { a -> Utils.isBeaconAffect(it, a) }
             }
-            .sortedBy { it.place.start.x * best.size.y + it.place.start.y }
+//            .sortedBy { it.place.start.x * best.size.y + it.place.start.y }
+//            .sortedBy { best.removeBuilding(it).emptyCountScore }
+            .sortedBy { -removeWithConnectors(best, it).emptyCountScore }
             .toList()
     }
 
@@ -199,7 +201,9 @@ class GlobalUpgradeManager(private val globalPlanner: GlobalPlanner) {
             .filter { it.from() in building.place.cells }
         val formNew = newBest.buildings.filterIsInstance<Inserter>()
             .filter { it.from() in building.place.cells }
-        if (from.size != formNew.size || formNew.size != 1) throw IllegalStateException("Wrong size")
+        if (from.size != formNew.size || formNew.size != 1) {
+            throw IllegalStateException("Wrong size")
+        }
         if (from[0].place.start != formNew[0].place.start) return true
 
         val to = best.buildings.filterIsInstance<Inserter>()
@@ -220,12 +224,16 @@ class GlobalUpgradeManager(private val globalPlanner: GlobalPlanner) {
         limit: Int = 9999
     ): State {
         var best = current
+        val scip = mutableSetOf<Cell>()
+        val freeStart = current.freeCells.size
         while (true) {
             val min = scoreManager.calculateScore(best, recipeTree, false)
             val assembler = best.buildings.filterIsInstance<Assembler>().size
             val smelter = best.buildings.filterIsInstance<Smelter>().size
             val beacon = best.buildings.filterIsInstance<Beacon>().size
-            logger.info { "Updating ${min.second}, ${min.first}. Map counts: $assembler, $smelter, $beacon" }
+            val freeCurrent = best.freeCells.size
+            val progress = (freeStart - freeCurrent) / freeStart.toDouble() * 100.0
+            logger.info { "Updating ${min.second}, ${min.first}. Progress: $progress. Map counts (a/s/b): $assembler, $smelter, $beacon" }
 //            logger.trace { Utils.convertToJson(best) }
             val special = min.second in setOf("electronic-circuit", "processing-unit")
             val stepUnit =
@@ -239,7 +247,7 @@ class GlobalUpgradeManager(private val globalPlanner: GlobalPlanner) {
                 field,
                 min.second,
                 recipeTree,
-                mutableSetOf(),
+                scip,
                 stepUnit,
                 limit = limit,
                 special = special

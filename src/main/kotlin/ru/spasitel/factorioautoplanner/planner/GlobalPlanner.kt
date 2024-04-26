@@ -21,8 +21,8 @@ class GlobalPlanner {
         Utils.checkLiquids = true
 
         var double = false
-        var min = 600.0
-        var max = 601.5
+        var min = 10.0
+        var max = 11.5
         var best: State? = null
         val delta = if (isSmelter) 1.0 else 0.05
 
@@ -406,14 +406,15 @@ class GlobalPlanner {
         if (special) {
             return Pair(next, nextScore)
         }
-        val starts = placesForItem(current, field, unit, recipeTree)
+        val starts = placesForItem(current, field, unit, recipeTree).minus(scip)
         var count = 0
+        logger.info { "Trying $unit from $starts" }
         for (start in starts) {
             if (scip.contains(start)) {
+                logger.info { "Skipping $start" }
                 continue
             }
             // sort by score
-            logger.info { "Trying $unit from $start" }
             val pair = stepUnit(start, current, field, recipeTree, unit)
             if (pair.first == null) {
                 scip.add(start)
@@ -862,9 +863,10 @@ class GlobalPlanner {
             "processing-unit", "electronic-circuit", "steel-plate" -> findLeastPerformed(current, unit)
             else -> scoreManager.buildingsForUnit(unit, current)
         }
-
-        buildingsForUnit.forEach { assembler ->
-            current.freeCells.filter { it.maxDistanceTo(assembler.place.start) < 6 }.forEach { beaconStart ->
+        val cells = current.freeCells
+            .filter { buildingsForUnit.any { assembler -> it.maxDistanceTo(assembler.place.start) < 6 } }
+        logger.info { "Beacon starts for $unit: ${cells.size}" }
+        cells.forEach { beaconStart ->
                 val beacon = Utils.getBuilding(beaconStart, BuildingType.BEACON)
                 val newState = current.addBuilding(beacon)
                 if (newState != null) {
@@ -880,7 +882,7 @@ class GlobalPlanner {
                     }
                 }
             }
-        }
+
         return best
     }
 
@@ -897,29 +899,29 @@ class GlobalPlanner {
 
         val buildingsForUnit = when (unit) {
             //blue and green - calculate which in chain is worse
-            "processing-unit", "electronic-circuit" -> findLeastPerformed(current, unit)
+            "processing-unit", "electronic-circuit", "steel-plate" -> findLeastPerformed(current, unit)
             else -> scoreManager.buildingsForUnit(unit, current)
         }
 
-        buildingsForUnit.forEach { assembler ->
-            current.freeCells.filter { it.maxDistanceTo(assembler.place.start) < 6 }.forEach { beaconStart ->
+        current.freeCells
+            .filter { buildingsForUnit.any { assembler -> it.maxDistanceTo(assembler.place.start) < 6 } }
+            .forEach { beaconStart ->
                 val beacon = Utils.getBuilding(beaconStart, BuildingType.BEACON)
                 val newState = current.addBuilding(beacon)
                 if (newState != null) {
                     val newScore =
-                        if (unit == "processing-unit" || unit == "electronic-circuit")
+                        if (unit == "processing-unit" || unit == "electronic-circuit" || unit == "steel-plate")
                             scoreManager.calculateScoreForItem(newState, unit, recipeTree) else
                             scoreManager.calculateScoreForBuilding(Pair(newState, beacon), unit)
                     result.add(Pair(newScore, newState))
                 }
             }
-        }
+
         return result
     }
 
     private fun findLeastPerformed(current: State, unit: String): List<Building> {
         val result = mutableListOf<Building>()
-        //todo steel-plate
         val buildings = if (unit == "steel-plate")
             current.buildings.filterIsInstance<Smelter>().filter { it.recipe == "steel-plate" }
         else
@@ -1041,6 +1043,10 @@ class GlobalPlanner {
         private val log = KotlinLogging.logger {}
 
         val isSmelter = true
+//        val smelterType = "copper"
+//        val smelterOre = "copper"
+
+        //        val smelterType = "steel"
         val smelterType = "iron"
         val smelterOre = "iron"
 
