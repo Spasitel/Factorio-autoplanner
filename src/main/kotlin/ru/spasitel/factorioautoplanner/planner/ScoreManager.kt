@@ -75,11 +75,12 @@ class ScoreManager {
                 }
             }
 
+
             "steel-plate" -> {
                 val inserter = state.buildings.filterIsInstance<Inserter>()
                     .first { it.to() in building.place.cells && state.map[it.from()] is Smelter }
                 val cable = (state.map[inserter.from()] as Smelter)
-                val cableProductivity = calculateScoreForBuilding(Pair(state, cable), "iron-plate")
+                val cableProductivity = calculateScoreForBuilding(Pair(state, cable), "iron-plate") * 1.2
                 if (cableProductivity < productivity) {
                     productivity = cableProductivity
                     building = cable
@@ -101,6 +102,7 @@ class ScoreManager {
         "solid-fuel" -> state.buildings.filter { it.type == BuildingType.CHEMICAL_PLANT && (it as ChemicalPlant).recipe == "solid-fuel-from-light-oil" }
         "battery", "plastic-bar", "sulfuric-acid", "sulfur", "lubricant" -> state.buildings.filter { it.type == BuildingType.CHEMICAL_PLANT && (it as ChemicalPlant).recipe == unit }
         "stone-brick", "copper-plate", "iron-plate" -> state.buildings.filterIsInstance<Smelter>()
+            .filter { it.recipe == unit }
         "space-science-pack" -> state.buildings.filterIsInstance<RocketSilo>()
         "science-approximation" -> state.buildings.filterIsInstance<Lab>()
         "steel-plate" -> state.buildings.filter { it.type == BuildingType.SMELTER && (it as Smelter).recipe == "steel-plate" }

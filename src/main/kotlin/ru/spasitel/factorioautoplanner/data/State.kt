@@ -55,7 +55,7 @@ data class State(
             result
         }
     */
-    private val number: Int = count++
+    val number: Int = count++
 
     val area: Lazy<Int> = lazy {
 
@@ -123,6 +123,35 @@ data class State(
     }
 
     fun addBuilding(building: Building): State? {
+
+        val newFreeCells = HashSet(freeCells)
+        val newMap = map.toMutableMap()
+        val newBuildings: MutableSet<Building> = HashSet(buildings)
+        val newPerformanceMap = performanceMap.toMutableMap()
+
+        return addBuildingTo(building, newMap, newBuildings, newPerformanceMap, newFreeCells)
+    }
+
+    fun addBuildings(buildingsToAdd: List<Building>): State? {
+        var state = this
+        val newFreeCells = HashSet(freeCells)
+        val newMap = map.toMutableMap()
+        val newBuildings: MutableSet<Building> = HashSet(buildings)
+        val newPerformanceMap = performanceMap.toMutableMap()
+        for (building in buildingsToAdd) {
+            state = state.addBuildingTo(building, newMap, newBuildings, newPerformanceMap, newFreeCells) ?: return null
+        }
+        return state
+
+    }
+
+    private fun addBuildingTo(
+        building: Building,
+        newMap: MutableMap<Cell, Building>,
+        newBuildings: MutableSet<Building>,
+        newPerformanceMap: MutableMap<Cell, Double>,
+        newFreeCells: HashSet<Cell>
+    ): State? {
         if (building.place.cells.any { it.x >= size.x || it.y >= size.y }) {
             return null
         }
@@ -138,17 +167,13 @@ data class State(
             return null
         }
 
-        val newMap = map.toMutableMap()
         for (cell in building.place.cells) {
             newMap[cell] = building
         }
 
-        val newBuildings: MutableSet<Building> = HashSet(buildings)
         newBuildings.add(building)
 
-
-        val newPerformanceMap = if (building.type != BuildingType.BEACON) performanceMap else {
-            val newPerformanceMap = performanceMap.toMutableMap()
+        if (building.type == BuildingType.BEACON) {
             for (x in -5..5)
                 for (y in -5..5)
                     newPerformanceMap[Cell(building.place.start.x + x, building.place.start.y + y)] =
@@ -156,27 +181,25 @@ data class State(
                             Cell(building.place.start.x + x, building.place.start.y + y),
                             0.0
                         ) + (building as Beacon).speed()
-            newPerformanceMap
         }
 
-        val newFreeCells = HashSet(freeCells)
         newFreeCells.removeAll(
             Utils.cellsForBuilding(
                 Cell(building.place.start.x - 2, building.place.start.y - 2),
                 BuildingType.BEACON.size + building.type.size - 1
             )
         )
-//        if(newFreeCells != oldFreeCells(size, newBuildings)) {
-//            throw IllegalStateException("Free cells are not equal")
-//        }
+        //        if(newFreeCells != oldFreeCells(size, newBuildings)) {
+        //            throw IllegalStateException("Free cells are not equal")
+        //        }
 
 
         val newEmptyCountScore = recalculateEmptyCountScore(building, map, newMap, emptyCountScore, size)
 
         val state = State(newBuildings, newMap, size, newPerformanceMap, newFreeCells, newEmptyCountScore)
-//        if (state.emptyScore.value != newEmptyCountScore) {
-//            throw IllegalStateException("Empty score is not equal")
-//        }
+        //        if (state.emptyScore.value != newEmptyCountScore) {
+        //            throw IllegalStateException("Empty score is not equal")
+        //        }
 
         return state
     }
@@ -271,16 +294,16 @@ data class State(
 
         other as State
 
-        if (buildings != other.buildings) return false
-        if (map != other.map) return false
         if (size != other.size) return false
+        if (buildings != other.buildings) return false
+//        if (map != other.map) return false
 
         return true
     }
 
     override fun hashCode(): Int {
         var result = buildings.hashCode()
-        result = 31 * result + map.hashCode()
+//        result = 31 * result + map.hashCode()
         result = 31 * result + size.hashCode()
         return result
     }

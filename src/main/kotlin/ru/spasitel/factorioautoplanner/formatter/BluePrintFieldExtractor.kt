@@ -237,11 +237,10 @@ class BluePrintFieldExtractor {
                     logger.info { "Can't find stop for chest $start" }
                 }
                 when (name) {
-                    "copper unload" -> (provider as ProviderChest).items.add("copper-plate")
-                    "iron unload" -> (provider as ProviderChest).items.add("iron-plate")
-                    "steel unload" -> (provider as ProviderChest).items.add("steel-plate")
-                    "stone unload" -> (provider as ProviderChest).items.add("stone")
-                    "coal unload" -> (provider as ProviderChest).items.add("coal")
+                    "[item=copper-ore] unload" -> (provider as ProviderChest).items.add("copper-ore")
+                    "[item=iron-ore] unload" -> (provider as ProviderChest).items.add("iron-ore")
+                    "[item=stone] unload" -> (provider as ProviderChest).items.add("stone")
+                    "[item=coal] unload" -> (provider as ProviderChest).items.add("coal")
                     else -> logger.info { "Unknown chest $name" }
                 }
 
@@ -262,6 +261,7 @@ class BluePrintFieldExtractor {
             } else if (building.type == BuildingType.REQUEST_CHEST) {
                 (provider as ProviderChest).items.add("empty")
             } else if (building.type == BuildingType.SMELTER) {
+                //todo fix read smelters
                 (provider as ProviderChest).items.add("stone-brick")
             } else {
                 logger.info { "Can't find items for chest $start" }
@@ -647,7 +647,7 @@ class BluePrintFieldExtractor {
                             BuildingType.ASSEMBLER,
                             direction = entity.direction,
                             recipe = entity.recipe!!
-                            //todo: add module
+
                         )
                     )
                     if (addBuilding == null) {
@@ -713,6 +713,8 @@ class BluePrintFieldExtractor {
                         (x - BuildingType.SMELTER.size / 2.0).roundToInt(),
                         (y - BuildingType.SMELTER.size / 2.0).roundToInt()
                     )
+
+                    //todo add smelter recipe
                     val addBuilding = state.addBuilding(
                         Utils.getBuilding(
                             start,
@@ -805,10 +807,10 @@ class BluePrintFieldExtractor {
         const val CURVED_RAILS =
             "0eNqlmt1O4zAQhd/F1ymKf8fuqyC0Km3ERiopSgJahPru21JBuyij8Z65a0H9cnpsxx8mH+Zx/9q9jP0wm/WH6beHYTLr+w8z9U/DZn/+2fz+0pm16efu2TRm2Dyf342bfm+OjemHXffHrO2xET+yPzz109xvV9vf3TSvpvkwbp66G4g7PjSmG+Z+7rtLiM8377+G1+fHbjxd5Zu1fR3fut3qM0VjXg7T6TOH4XzpE2dFLjfm/fSihPaE3/Vjt738/jPnD6qTEi5e4C5+XcLdxeMC1iNYumL9MjYg2ChiI4INYgkJwNpWTEsI1oppc+38am/m1wKnAPHaLH5r2yJcEr+2tf/PTUUeJeuUXC6vrxynlLn7QFjCAksrZXnF2qjkcjWk2hoSV0NcwgKL63QFOW5Wcrl6C8KNYl7XKrlMXgesNjqH/B5DhuuUXMtwa1cbeW6a+SUsspF5kuMiO5mPcr3IVuaKzCUll+shK0WB4xYll+nBI5ubszK3Whrt1/T1+d/pS0tYZLVZeTp4rzQmZth8UHK5vMhya5OcNym5XF6q3TQLdzdLS1hktbUV9SKbW8livQHZ3IoX8war5HJ5tSrJcb2Sy/WgdUkuL+SS8rII1S5J3F3SLWERl6SKuIhLUpC5RemozLBFyCXl3SJapaNyeZ2Sy+VFdjd/7eH8cpELyeR13M4vF7mQTAY5L7K7eS/nRWTStzI3K7lcD5BMJpGbWt3hG9dDQv52c07O63Tyy+aFbDLJXMgmSe4Bskn5/pCS7kSO7QFZb22U82Yll8sLnUw6kUvQyaQVeyBIJ+X7A0E6Kd8fCNHJLM9fCkoulxfSSXn+UlJyubyQT2Y5L+STFf0Wnady3Iz4JHmxh4ysN5L9ITsll8uLrLck7285KLlcXsgnb7jEcJPSUzmu1icTw9X6JJe3KL2PyVu0PsnkLZBPyj0U6HQyyz1APunlvEHJ5fJGpfdxXK1Pcj1ofZLjan2S66EovY+4/3RD55OlAozscDlXgJ3uxI+r2LZe6VIsGJLKUFEFZJWuApyUYLYKyCtrBg8Sy1hRRVEaFZfYQmpZsaShp0xSrkgMHVb+3JwfmsvjauubB+Ia89aN0+V0O9tAxRFln71Px+NfWo2uSw=="
 
-        //        val FIELD_FULL = readFieldFromFile("/field_full.txt")
-//
-//        val FIELD_PREP = readFieldFromFile("/field_prep.txt")
-        val FIELD_SMELTER = readFieldFromFile("/" + GlobalPlanner.smelterType + ".txt")
+//        val FIELD_FULL = readFieldFromFile("/field_full.txt")
+
+        val FIELD_PREP = readFieldFromFile("/field_prep.txt")
+//        val FIELD_SMELTER = readFieldFromFile("/" + GlobalPlanner.smelterType + ".txt")
 
         @JvmStatic
         fun readFieldFromFile(name: String): Field {

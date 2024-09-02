@@ -166,9 +166,11 @@ class TechnologyTreePlanner {
             setOf("iron-ore", "copper-ore")
         else
             setOf(
-                "iron-plate",
-                "copper-plate",
-                "steel-plate",
+//                "iron-plate",
+//                "copper-plate",
+//                "steel-plate",
+                "iron-ore",
+                "copper-ore",
                 "coal",
                 "stone",
                 "water",
@@ -255,9 +257,6 @@ class TechnologyTreePlanner {
             "stone-brick",
             "electric-engine-unit",
             "battery",
-            "iron-plate",
-            "copper-plate",
-            "steel-plate",
             "automation-science-pack",
             "logistic-science-pack",
         )
@@ -279,6 +278,10 @@ class TechnologyTreePlanner {
 //            "flying-robot-frame",
 //            "chemical-science-pack",
 //            "military-science-pack",
+
+            "iron-plate",
+            "copper-plate",
+            "steel-plate",
 
             "empty-barrel",
             "uranium-processing",

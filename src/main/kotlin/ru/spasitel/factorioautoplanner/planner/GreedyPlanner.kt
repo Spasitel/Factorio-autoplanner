@@ -10,7 +10,6 @@ import ru.spasitel.factorioautoplanner.data.building.ProviderChest
 
 class GreedyPlanner {
 
-
     fun greedy(state: State, types: List<BuildingType>): State {
         var currentState = state
         while (true) {
@@ -27,7 +26,6 @@ class GreedyPlanner {
         for (type in types) {
             val newStates: Set<State> =
                 generateNewStates(type, state, forBuild)
-
 
             for (newState in newStates) {
                 if (newState.score.value > bestScore) {
@@ -49,6 +47,7 @@ class GreedyPlanner {
         else generateStates(state, forBuild, type)
     }
 
+    //greedy main
     private fun generateStates(state: State, forBuild: Cell, type: BuildingType): Set<State> {
         val newStates = HashSet<State>()
         for (x in -4 until 5) {
@@ -57,9 +56,10 @@ class GreedyPlanner {
                 // build and add to newStates
                 val building = Utils.getBuilding(start, type)
                 val withoutChests = state.addBuilding(building) ?: continue
-                val withInputChest = addChests(withoutChests, building, BuildingType.REQUEST_CHEST)
+                val withInputChest = addChests(withoutChests, building, BuildingType.REQUEST_CHEST) //greedy main
                 for (withInputChestState in withInputChest) {
-                    val withOutputChest = addChests(withInputChestState, building, BuildingType.PROVIDER_CHEST)
+                    val withOutputChest =
+                        addChests(withInputChestState, building, BuildingType.PROVIDER_CHEST) //greedy main
                     for (withOutputChestState in withOutputChest) {
                         if (!withOutputChestState.freeCells.contains(forBuild))
                             newStates.add(withOutputChestState)
@@ -79,54 +79,61 @@ class GreedyPlanner {
     ): Set<State> {
         val newStates = HashSet<State>()
         for (chest in Utils.chestsPositions(building)) {
-            if (withoutChests.map.containsKey(chest.first) ||
-                (withoutChests.map.containsKey(chest.second)
-                        && withoutChests.map.getValue(chest.second).type != type)
-            ) {
-                continue
-            }
-            if (field != null && !Utils.isBetween(chest.second, field.chestField)) continue
-            if (field != null && withoutChests.map.containsKey(chest.second) &&
-                withoutChests.map[chest.second]!! is ProviderChest &&
-                ((withoutChests.map[chest.second] as ProviderChest).items.isEmpty() ||
-                        (withoutChests.map[chest.second] as ProviderChest).items.first() in TechnologyTreePlanner.base
-                        )
-            ) {
-                continue
-            }
-
-            val inserterBuilding = Utils.getBuilding(
-                chest.first,
-                BuildingType.INSERTER,
-                direction = if (type == BuildingType.PROVIDER_CHEST) (chest.third + 4).mod(8) else chest.third
-            )
-            var newItems = items.toMutableSet()
-            if (type == BuildingType.PROVIDER_CHEST &&
-                items.isNotEmpty() &&
-                withoutChests.map.containsKey(chest.second)
-            ) {
-                newItems = (withoutChests.map.getValue(chest.second) as ProviderChest).items.plus(items).toMutableSet()
-            }
-            val chestBuilding = Utils.getBuilding(
-                chest.second,
-                type,
-                items = newItems
-            )
-            withoutChests.addBuilding(inserterBuilding)?.let {
-                if (!withoutChests.map.containsKey(chest.second)) {
-                    it.addBuilding(chestBuilding)?.let { state -> newStates.add(state) }
-                } else {
-                    if (type == BuildingType.PROVIDER_CHEST) {
-                        it.removeBuilding(withoutChests.map[chest.second]!!).let { state ->
-                            state.addBuilding(chestBuilding)?.let { state2 -> newStates.add(state2) }
-                        }
-                    } else {
-                        newStates.add(it)
-                    }
-                }
+            val triple = prepareChestsBuildings(withoutChests, chest, type, field, items) ?: continue
+            triple.first.addBuildings(listOf(triple.second, triple.third))?.let {
+                newStates.add(it)
             }
         }
         return newStates
+    }
+
+    public fun prepareChestsBuildings(
+        withoutChests: State,
+        chest: Triple<Cell, Cell, Int>,
+        type: BuildingType,
+        field: Field?,
+        items: Set<String>
+    ): Triple<State, Building, Building>? {
+        if (withoutChests.map.containsKey(chest.first) ||
+            (withoutChests.map.containsKey(chest.second)
+                    && withoutChests.map.getValue(chest.second).type != type)
+        ) {
+            return null
+        }
+        if (field != null && !Utils.isBetween(chest.second, field.chestField)) return null
+        if (field != null && withoutChests.map.containsKey(chest.second) &&
+            withoutChests.map[chest.second]!! is ProviderChest &&
+            ((withoutChests.map[chest.second] as ProviderChest).items.isEmpty() ||
+                    (withoutChests.map[chest.second] as ProviderChest).items.first() in TechnologyTreePlanner.base
+                    )
+        ) {
+            return null
+        }
+
+        val inserterBuilding = Utils.getBuilding(
+            chest.first,
+            BuildingType.INSERTER,
+            direction = if (type == BuildingType.PROVIDER_CHEST) (chest.third + 4).mod(8) else chest.third
+        )
+        var newItems = items.toMutableSet()
+        if (type == BuildingType.PROVIDER_CHEST &&
+            items.isNotEmpty() &&
+            withoutChests.map.containsKey(chest.second)
+        ) {
+            newItems = (withoutChests.map.getValue(chest.second) as ProviderChest).items.plus(items).toMutableSet()
+        }
+        val chestBuilding = Utils.getBuilding(
+            chest.second,
+            type,
+            items = newItems
+        )
+
+        val state = if (!withoutChests.map.containsKey(chest.second) || type != BuildingType.PROVIDER_CHEST) {
+            withoutChests
+        } else {
+            withoutChests.removeBuilding(withoutChests.map[chest.second]!!)
+        }
+        return Triple(state, inserterBuilding, chestBuilding)
     }
 
     private fun generateBeaconStates(state: State, forBuild: Cell): Set<State> {
@@ -142,8 +149,7 @@ class GreedyPlanner {
         return newStates
     }
 
-
-    //choose the closest place for building
+    // choose the closest place for building
     private fun getClosestPlace(state: State): Cell? {
         var minDistance = Int.MAX_VALUE
         var closestStart: Cell? = null

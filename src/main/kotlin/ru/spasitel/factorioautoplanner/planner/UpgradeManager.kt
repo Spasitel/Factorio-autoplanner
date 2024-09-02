@@ -31,7 +31,7 @@ class UpgradeManager {
                     val valueDiff = (o1.score.value - o2.score.value).sign.toInt()
                     if (freeDiff != 0) freeDiff
                     else if (valueDiff != 0) valueDiff
-                    else o1.hashCode() - o2.hashCode()
+                    else o1.number - o2.number
                 }
             var deleted: List<Building>? = findNextToDelete(best, lastDelete) ?: return best
             while (deleted != null && deleted.size == size) {

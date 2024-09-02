@@ -14,11 +14,11 @@ class UpgradeManagerTest {
     fun findNextToDelete() {
 
         var state = State(emptySet(), emptyMap(), Cell(18, 18))
-        val building1 = Utils.getBuilding(Cell(1, 0), BuildingType.SMELTER)
-        val building2 = Utils.getBuilding(Cell(3, 6), BuildingType.SMELTER)
-        val building3 = Utils.getBuilding(Cell(4, 3), BuildingType.SMELTER)
-        val building4 = Utils.getBuilding(Cell(7, 2), BuildingType.SMELTER)
-        val building5 = Utils.getBuilding(Cell(7, 6), BuildingType.SMELTER)
+        val building1 = Utils.getBuilding(Cell(1, 0), BuildingType.SMELTER, recipe = "iron-plate")
+        val building2 = Utils.getBuilding(Cell(3, 6), BuildingType.SMELTER, recipe = "iron-plate")
+        val building3 = Utils.getBuilding(Cell(4, 3), BuildingType.SMELTER, recipe = "iron-plate")
+        val building4 = Utils.getBuilding(Cell(7, 2), BuildingType.SMELTER, recipe = "iron-plate")
+        val building5 = Utils.getBuilding(Cell(7, 6), BuildingType.SMELTER, recipe = "iron-plate")
         state =
             state.addBuilding(building2)!!.addBuilding(building1)!!.addBuilding(building3)!!.addBuilding(building4)!!
                 .addBuilding(building5)!!

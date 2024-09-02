@@ -55,7 +55,7 @@ class OilPlanner {
             val valueDiff = (o2.distance - o1.distance).sign.toInt()
             if (freeDiff != 0) freeDiff
             else if (valueDiff != 0) valueDiff
-            else o1.hashCode() - o2.hashCode()
+            else o1.state.number - o2.state.number
         }
         states.add(AStarState(state, start, 0.0, 0.0))
         var count = 0

@@ -170,6 +170,8 @@ class GlobalUpgradeManager(private val globalPlanner: GlobalPlanner) {
             "electronic-circuit#blue",
             "electronic-circuit",
             "processing-unit",
+            "steel-plate",
+            "iron-plate#steel"
         )
         val notTouch = best.buildings.filter { it.type == BuildingType.ASSEMBLER && (it as Assembler).recipe in skip }
         return best.buildings
@@ -177,6 +179,7 @@ class GlobalUpgradeManager(private val globalPlanner: GlobalPlanner) {
             .filter { (it.type == BuildingType.BEACON && removeBeacons) || it.type == BuildingType.ASSEMBLER || it.type == BuildingType.SMELTER }
             .filter { field.state.map[it.place.start] == null }
             .filter { includeScip || it.type != BuildingType.ASSEMBLER || (it as Assembler).recipe !in skip }
+            .filter { includeScip || it.type != BuildingType.SMELTER || (it as Smelter).recipe !in skip }
             .filter {
                 it.type != BuildingType.BEACON ||
                         !notTouch.any { a -> Utils.isBeaconAffect(it, a) }
@@ -235,7 +238,7 @@ class GlobalUpgradeManager(private val globalPlanner: GlobalPlanner) {
             val progress = (freeStart - freeCurrent) / freeStart.toDouble() * 100.0
             logger.info { "Updating ${min.second}, ${min.first}. Progress: $progress. Map counts (a/s/b): $assembler, $smelter, $beacon" }
 //            logger.trace { Utils.convertToJson(best) }
-            val special = min.second in setOf("electronic-circuit", "processing-unit")
+            val special = min.second in setOf("electronic-circuit", "processing-unit", "steel-plate")
             val stepUnit =
                 if (GlobalPlanner.isSmelter && GlobalPlanner.smelterType == "steel")
                     globalPlanner::stepSteel
@@ -398,7 +401,7 @@ class GlobalUpgradeManager(private val globalPlanner: GlobalPlanner) {
             var localBestScore = bestScore
             while (toRemoveSet.isNotEmpty()) {
                 val (building, building2) = toRemoveSet.removeAt(0)
-                if (building.type == BuildingType.SMELTER && building2.type == BuildingType.SMELTER) continue
+                if (building.type == BuildingType.SMELTER && building2.type == BuildingType.SMELTER) continue //todo: minor: fix for smelters
                 if (building.type == BuildingType.ASSEMBLER && building2.type == BuildingType.ASSEMBLER &&
                     (building as Assembler).recipe == (building2 as Assembler).recipe
                 ) continue
@@ -408,7 +411,7 @@ class GlobalUpgradeManager(private val globalPlanner: GlobalPlanner) {
                 val removed1 = removeWithConnectors(best, building)
                 val removed = removeWithConnectors(removed1, building2)
 
-                val recipe1 = if (building2 is Assembler) building2.recipe else "stone-brick"
+                val recipe1 = if (building2 is Assembler) building2.recipe else (building2 as Smelter).recipe
                 val newBuilding1 = Utils.getBuilding(
                     building.place.start,
                     building2.type,
@@ -417,7 +420,7 @@ class GlobalUpgradeManager(private val globalPlanner: GlobalPlanner) {
                 val add1 = removed.addBuilding(
                     newBuilding1
                 )
-                val recipe2 = if (building is Assembler) building.recipe else "stone-brick"
+                val recipe2 = if (building is Assembler) building.recipe else (building as Smelter).recipe
                 val newBuilding2 = Utils.getBuilding(
                     building2.place.start,
                     building.type,
@@ -712,7 +715,7 @@ class GlobalUpgradeManager(private val globalPlanner: GlobalPlanner) {
             BuildingType.OIL_REFINERY -> "crude-oil"
             BuildingType.LAB -> "science-approximation"
             BuildingType.ROCKET_SILO -> "space-science-pack"
-            BuildingType.SMELTER -> "stone-brick"
+            BuildingType.SMELTER -> (b as Smelter).recipe
             BuildingType.CHEMICAL_PLANT -> {
                 when ((b as ChemicalPlant).recipe) {
                     "solid-fuel-from-light-oil" -> "solid-fuel"

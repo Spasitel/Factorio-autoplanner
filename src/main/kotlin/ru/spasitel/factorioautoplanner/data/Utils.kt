@@ -48,7 +48,7 @@ object Utils {
 
         return when (type) {
             BuildingType.BEACON -> Beacon(place, moduleLvl)
-            BuildingType.SMELTER -> Smelter(place, recipe)
+            BuildingType.SMELTER -> Smelter(place, recipe!!)
             BuildingType.PROVIDER_CHEST -> ProviderChest(place, items = items)
             BuildingType.REQUEST_CHEST -> {
                 val rItems = HashMap<String, Int>()
