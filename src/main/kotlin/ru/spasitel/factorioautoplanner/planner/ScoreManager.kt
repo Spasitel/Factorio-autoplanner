@@ -34,7 +34,7 @@ class ScoreManager {
         var productivity = calculateScoreForBuilding(Pair(state, b), unit)
         when (unit) {
             "electronic-circuit" -> {
-                val inserter = state.buildings.filterIsInstance<Inserter>()
+                val inserter = Utils.getInsertersNear(state, building)
                     .first { it.to() in building.place.cells && state.map[it.from()] is Assembler && (state.map[it.from()] as Assembler).recipe == "copper-cable#green" }
                 val cable = (state.map[inserter.from()] as Assembler)
                 val cableProductivity = calculateScoreForBuilding(Pair(state, cable), "copper-cable") * 0.93333332586
@@ -56,7 +56,7 @@ class ScoreManager {
             }
 
             "processing-unit" -> {
-                val inserter = state.buildings.filterIsInstance<Inserter>()
+                val inserter = Utils.getInsertersNear(state, building)
                     .first { it.to() in building.place.cells && state.map[it.from()] is Assembler && (state.map[it.from()] as Assembler).recipe == "electronic-circuit#blue" }
                 val green = (state.map[inserter.from()] as Assembler)
                 val greenProductivity = calculateScoreForBuilding(Pair(state, green), "electronic-circuit") * 1.4
@@ -65,7 +65,7 @@ class ScoreManager {
                     building = green
                 }
 
-                val inserter2 = state.buildings.filterIsInstance<Inserter>()
+                val inserter2 = Utils.getInsertersNear(state, green)
                     .firstOrNull { it.to() in green.place.cells && state.map[it.from()] is Assembler && (state.map[it.from()] as Assembler).recipe == "copper-cable#blue" }
                 val cable = (state.map[inserter2!!.from()] as Assembler)
                 val cableProductivity = calculateScoreForBuilding(Pair(state, cable), "copper-cable") * 1.30666666
@@ -77,7 +77,7 @@ class ScoreManager {
 
 
             "steel-plate" -> {
-                val inserter = state.buildings.filterIsInstance<Inserter>()
+                val inserter = Utils.getInsertersNear(state, building)
                     .first { it.to() in building.place.cells && state.map[it.from()] is Smelter }
                 val cable = (state.map[inserter.from()] as Smelter)
                 val cableProductivity = calculateScoreForBuilding(Pair(state, cable), "iron-plate") * 1.2
@@ -97,17 +97,21 @@ class ScoreManager {
         state: State
     ) = when (unit) {
         "crude-oil" -> state.buildings.filterIsInstance<OilRefinery>()
-        "heavy-oil" -> state.buildings.filter { it.type == BuildingType.CHEMICAL_PLANT && (it as ChemicalPlant).recipe == "heavy-oil-cracking" }
-        "light-oil" -> state.buildings.filter { it.type == BuildingType.CHEMICAL_PLANT && (it as ChemicalPlant).recipe == "light-oil-cracking" }
-        "solid-fuel" -> state.buildings.filter { it.type == BuildingType.CHEMICAL_PLANT && (it as ChemicalPlant).recipe == "solid-fuel-from-light-oil" }
-        "battery", "plastic-bar", "sulfuric-acid", "sulfur", "lubricant" -> state.buildings.filter { it.type == BuildingType.CHEMICAL_PLANT && (it as ChemicalPlant).recipe == unit }
-        "stone-brick", "copper-plate", "iron-plate" -> state.buildings.filterIsInstance<Smelter>()
+        "heavy-oil" -> state.buildings.filterIsInstance<ChemicalPlant>().filter { it.recipe == "heavy-oil-cracking" }
+        "light-oil" -> state.buildings.filterIsInstance<ChemicalPlant>().filter { it.recipe == "light-oil-cracking" }
+        "solid-fuel" -> state.buildings.filterIsInstance<ChemicalPlant>()
+            .filter { it.recipe == "solid-fuel-from-light-oil" }
+
+        "battery", "plastic-bar", "sulfuric-acid", "sulfur", "lubricant" -> state.buildings.filterIsInstance<ChemicalPlant>()
             .filter { it.recipe == unit }
+
+        "stone-brick", "copper-plate", "iron-plate", "steel-plate" -> state.buildings.filterIsInstance<Smelter>()
+            .filter { it.recipe == unit }
+
         "space-science-pack" -> state.buildings.filterIsInstance<RocketSilo>()
         "science-approximation" -> state.buildings.filterIsInstance<Lab>()
-        "steel-plate" -> state.buildings.filter { it.type == BuildingType.SMELTER && (it as Smelter).recipe == "steel-plate" }
 
-        else -> state.buildings.filter { b -> b.type == BuildingType.ASSEMBLER && (b as Assembler).recipe == unit }
+        else -> state.buildings.filterIsInstance<Assembler>().filter { b -> b.recipe == unit }
     }
 
     /**

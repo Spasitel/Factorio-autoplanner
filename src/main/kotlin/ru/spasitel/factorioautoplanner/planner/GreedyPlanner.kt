@@ -7,6 +7,7 @@ import ru.spasitel.factorioautoplanner.data.Utils
 import ru.spasitel.factorioautoplanner.data.building.Building
 import ru.spasitel.factorioautoplanner.data.building.BuildingType
 import ru.spasitel.factorioautoplanner.data.building.ProviderChest
+import ru.spasitel.factorioautoplanner.data.building.RequestChest
 
 class GreedyPlanner {
 
@@ -56,10 +57,11 @@ class GreedyPlanner {
                 // build and add to newStates
                 val building = Utils.getBuilding(start, type)
                 val withoutChests = state.addBuilding(building) ?: continue
-                val withInputChest = addChests(withoutChests, building, BuildingType.REQUEST_CHEST) //greedy main
+                val withInputChest =
+                    addChests(withoutChests, building, BuildingType.REQUEST_CHEST, "coal") //greedy main
                 for (withInputChestState in withInputChest) {
                     val withOutputChest =
-                        addChests(withInputChestState, building, BuildingType.PROVIDER_CHEST) //greedy main
+                        addChests(withInputChestState, building, BuildingType.PROVIDER_CHEST, "coal") //greedy main
                     for (withOutputChestState in withOutputChest) {
                         if (!withOutputChestState.freeCells.contains(forBuild))
                             newStates.add(withOutputChestState)
@@ -74,12 +76,12 @@ class GreedyPlanner {
         withoutChests: State,
         building: Building,
         type: BuildingType,
-        items: Set<String> = setOf(),
+        unit: String,
         field: Field? = null
     ): Set<State> {
         val newStates = HashSet<State>()
         for (chest in Utils.chestsPositions(building)) {
-            val triple = prepareChestsBuildings(withoutChests, chest, type, field, items) ?: continue
+            val triple = prepareChestsBuildings(withoutChests, chest, type, field, unit) ?: continue
             triple.first.addBuildings(listOf(triple.second, triple.third))?.let {
                 newStates.add(it)
             }
@@ -92,7 +94,7 @@ class GreedyPlanner {
         chest: Triple<Cell, Cell, Int>,
         type: BuildingType,
         field: Field?,
-        items: Set<String>
+        unit: String
     ): Triple<State, Building, Building>? {
         if (withoutChests.map.containsKey(chest.first) ||
             (withoutChests.map.containsKey(chest.second)
@@ -115,12 +117,22 @@ class GreedyPlanner {
             BuildingType.INSERTER,
             direction = if (type == BuildingType.PROVIDER_CHEST) (chest.third + 4).mod(8) else chest.third
         )
-        var newItems = items.toMutableSet()
-        if (type == BuildingType.PROVIDER_CHEST &&
-            items.isNotEmpty() &&
-            withoutChests.map.containsKey(chest.second)
-        ) {
-            newItems = (withoutChests.map.getValue(chest.second) as ProviderChest).items.plus(items).toMutableSet()
+        var newItems = if (type == BuildingType.PROVIDER_CHEST) {
+            mutableSetOf(unit)
+        } else {
+            when (unit) {
+                "steel-plate", "iron-plate", "iron-plate#steel" -> mutableSetOf("iron-ore")
+                "copper-plate" -> mutableSetOf("copper-ore")
+                "stone-brick" -> mutableSetOf("stone")
+                else -> mutableSetOf()
+            }
+        }
+        if (withoutChests.map.containsKey(chest.second)) {
+            newItems = if (type == BuildingType.PROVIDER_CHEST) {
+                (withoutChests.map.getValue(chest.second) as ProviderChest).items.plus(newItems).toMutableSet()
+            } else {
+                (withoutChests.map.getValue(chest.second) as RequestChest).items.keys.plus(newItems).toMutableSet()
+            }
         }
         val chestBuilding = Utils.getBuilding(
             chest.second,
@@ -128,7 +140,7 @@ class GreedyPlanner {
             items = newItems
         )
 
-        val state = if (!withoutChests.map.containsKey(chest.second) || type != BuildingType.PROVIDER_CHEST) {
+        val state = if (!withoutChests.map.containsKey(chest.second) || newItems.isEmpty()) {
             withoutChests
         } else {
             withoutChests.removeBuilding(withoutChests.map[chest.second]!!)

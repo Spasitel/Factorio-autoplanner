@@ -54,6 +54,8 @@ object Utils {
                 val rItems = HashMap<String, Int>()
                 if (GlobalPlanner.isSmelter) {
                     rItems["${GlobalPlanner.smelterOre}-ore"] = 300
+                } else {
+                    items.forEach { rItems[it] = 1 }
                 }
                 RequestChest(place, rItems)
             }
@@ -118,10 +120,10 @@ object Utils {
         var json = StringBuilder(
             String.format(
                 START_JSON,
-                best.hashCode().div(1000).mod(10),
-                best.hashCode().div(100).mod(10),
-                best.hashCode().div(10).mod(10),
-                best.hashCode().mod(10),
+                best.number.div(1000).mod(10),
+                best.number.div(100).mod(10),
+                best.number.div(10).mod(10),
+                best.number.mod(10),
             )
         )
         for (b in best.buildings) {
@@ -157,5 +159,21 @@ object Utils {
         val distanceY =
             abs(beacon.place.start.y + beacon.type.size / 2.0 - to.place.start.y - to.type.size / 2.0) - to.type.size / 2.0
         return distanceX < 4 && distanceY < 4
+    }
+
+    fun getInsertersNear(state: State, building: Building): List<Inserter> {
+        val result = mutableListOf<Inserter>()
+        val start = building.place.start.up().left()
+        for (i in 1..building.type.size) {
+            val up = start.move(Direction.RIGHT, i)
+            val left = start.move(Direction.DOWN, i)
+            val right = start.move(Direction.DOWN, i).move(Direction.RIGHT, building.type.size + 1)
+            val down = start.move(Direction.RIGHT, i).move(Direction.DOWN, building.type.size + 1)
+            if (state.map[up] is Inserter) result.add(state.map[up] as Inserter)
+            if (state.map[left] is Inserter) result.add(state.map[left] as Inserter)
+            if (state.map[right] is Inserter) result.add(state.map[right] as Inserter)
+            if (state.map[down] is Inserter) result.add(state.map[down] as Inserter)
+        }
+        return result
     }
 }

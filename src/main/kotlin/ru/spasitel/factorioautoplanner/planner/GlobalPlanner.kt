@@ -21,8 +21,8 @@ class GlobalPlanner {
         Utils.checkLiquids = true
 
         var double = false
-        var min = 1.0
-        var max = 1.75
+        var min = 1.4616
+        var max = 1.545
         var best: State? = null
         val delta = if (isSmelter) 1.0 else 0.05
 
@@ -284,14 +284,16 @@ class GlobalPlanner {
     private fun planeSpecial(recipeTree: Map<String, ProcessedItem>, field: Field, mid: Double): State? {
         val delta = 0.7
         var state = field.state
+        state = planeGreedyItem(recipeTree, "copper-plate", state, field, mid) ?: return null
+        state = planeGreedyItem(recipeTree, "iron-plate", state, field, mid) ?: return null
         state = planeUnit(state, field, recipeTree, mid + delta, "steel-plate", ::stepSteel) ?: return null
+        state = planeUnit(state, field, recipeTree, mid + delta, "electronic-circuit", ::stepCircuits) ?: return null
         state = planeUnit(
             state, field, recipeTree, mid + delta, "processing-unit", ::stepProcessingUnit, limit = 0
         ) ?: return null
-        state = planeUnit(state, field, recipeTree, mid + delta, "electronic-circuit", ::stepCircuits) ?: return null
-        state = planeUnit(state, field, recipeTree, mid + delta, "battery", ::stepBattery) ?: return null
-        state = planeUnit(state, field, recipeTree, mid + delta, "electric-engine-unit", ::stepElectricEngine)
-            ?: return null
+//        state = planeUnit(state, field, recipeTree, mid + delta, "battery", ::stepBattery) ?: return null
+//        state = planeUnit(state, field, recipeTree, mid + delta, "electric-engine-unit", ::stepElectricEngine)
+//            ?: return null
         return state
     }
 
@@ -378,7 +380,7 @@ class GlobalPlanner {
     }
 
     fun planeAllSingleStep(
-        score: Double,
+        removed: Cell,
         current: State,
         field: Field,
         unit: String,
@@ -399,6 +401,10 @@ class GlobalPlanner {
         var count = 0
         for (start in starts) {
             if (scip.contains(start)) {
+                continue
+            }
+            if (start.maxDistanceTo(removed) > 9) {
+                logger.info { "Too far step" }
                 continue
             }
             // sort by score
@@ -570,10 +576,11 @@ class GlobalPlanner {
         return if (withInput && withOutput) {
             planeInputAndOutputChests(state, building, field, unit)
         } else if (withInput) {
-            GreedyPlanner().addChests(state, building, BuildingType.REQUEST_CHEST, field = field).toList()
+            GreedyPlanner().addChests(state, building, BuildingType.REQUEST_CHEST, unit, field = field)
+                .toList()
         } else if (withOutput) {
             GreedyPlanner().addChests(
-                state, building, BuildingType.PROVIDER_CHEST, items = setOf(unit), field = field
+                state, building, BuildingType.PROVIDER_CHEST, unit, field = field
             ).toList()
         } else {
             listOf(state)
@@ -589,10 +596,10 @@ class GlobalPlanner {
             for (chestOut in Utils.chestsPositions(building)) {
                 if (chestIn.first == chestOut.first) continue
                 val tripleIn = greedyPlanner.prepareChestsBuildings(
-                    state, chestIn, BuildingType.REQUEST_CHEST, field, setOf()
+                    state, chestIn, BuildingType.REQUEST_CHEST, field, unit
                 ) ?: continue
                 val tripleOut = greedyPlanner.prepareChestsBuildings(
-                    tripleIn.first, chestOut, BuildingType.PROVIDER_CHEST, field = field, items = setOf(unit)
+                    tripleIn.first, chestOut, BuildingType.PROVIDER_CHEST, field = field, unit
                 ) ?: continue
                 tripleOut.first.addBuildings(
                     listOf(
@@ -694,26 +701,27 @@ class GlobalPlanner {
             val average = Cell(chests.map { it.x }.average().roundToInt(), chests.map { it.y }.average().roundToInt())
             chestsToValue[average] = u
         }
-        val sortedByDistance = if (unit == "processing-unit") {
-            //processing-unit only in top
-            freeCells.filter { it.y < 60 }.sortedBy { -it.x }.take(400)
-        } else {
-            freeCells.sortedBy {
-                chestsToValue.map { (t, u) ->
-                    getDistance(it, t) * u
-                }.sum()
-//            .sortedBy {
-//            if (Utils.isBetween(it, field.roboportsField)) 1 else 0
-//        }
+        val sortedByDistance =
+            if (unit == "iron-plate") {
+
+                freeCells.sortedBy { it.maxDistanceTo(Cell(50, 30)) }.take(400)
+            } else {
+                val cells =
+                    if (unit == "steel-plate") {
+                        freeCells.filter { it.x > 58 }
+                    } else {
+                        freeCells
+                    }
+                cells.sortedBy {
+                    chestsToValue.map { (t, u) ->
+                        getDistance(it, t) * u
+                    }.sum()
+                }
             }.take(400)
-        }
 
         val sortedByPerformance = sortedByDistance.sortedBy {
             -current.performanceMap.getOrDefault(it, 0.0)
         }
-//            .sortedBy {
-//            if (Utils.isBetween(it, field.roboportsField)) 1 else 0
-//        }
 
         return sortedByPerformance
     }
@@ -903,7 +911,7 @@ class GlobalPlanner {
         //upgrade productivity
         current = upgradeManager.upgradeProductivity(current, recipeTree, field)
         //upgrade robots
-//        current = upgradeManager.upgradeRobotsTwo(current, recipeTree, field)
+        current = upgradeManager.upgradeRobotsTwo(current, recipeTree, field)
 //        current = upgradeManager.upgradeRobots(current, recipeTree, field)
 
 

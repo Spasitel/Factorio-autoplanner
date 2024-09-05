@@ -67,10 +67,13 @@ class RoboportsManager {
                         state.buildings.first { it.type == BuildingType.INSERTER && (it as Inserter).from() == source.place.start }
                     source = state.map[(inserter2 as Inserter).to()]!!
                 }
+                if (source.type == BuildingType.ROBOPORT) {
+                    continue
+                }
                 val item = when (source) {
                     is Assembler -> source.recipe
                     is ChemicalPlant -> source.recipe
-                    is Smelter -> "stone-brick"
+                    is Smelter -> source.recipe
                     is RocketSilo -> "space-science-pack"
                     is Lab -> "science-approximation"
                     else -> throw IllegalStateException("Unknown source $source")
@@ -144,7 +147,7 @@ class RoboportsManager {
                 val item = when (source) {
                     is Assembler -> source.recipe
                     is ChemicalPlant -> source.recipe
-                    is Smelter -> "stone-brick"
+                    is Smelter -> source.recipe
                     is RocketSilo -> "space-science-pack"
                     is RequestChest -> continue
                     else -> throw IllegalStateException("Unknown source $source")

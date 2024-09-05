@@ -23,16 +23,16 @@ class GlobalUpgradeManager(private val globalPlanner: GlobalPlanner) {
         logger.info { Utils.convertToJson(bestOne) }
         scoreManager.calculateScore(bestOne, recipeTree, true)
 
-        if (GlobalPlanner.isSmelter) {
+//        if (GlobalPlanner.isSmelter) {
             return bestOne
-        }
-        val bestTwo = removeTwo(bestOne, recipeTree, field)
-        logger.info { "After remove two:" }
-        logger.info { Utils.convertToJson(bestTwo) }
-        scoreManager.calculateScore(bestTwo, recipeTree, true)
-
-
-        return bestTwo
+//        }
+//        val bestTwo = removeTwo(bestOne, recipeTree, field)
+//        logger.info { "After remove two:" }
+//        logger.info { Utils.convertToJson(bestTwo) }
+//        scoreManager.calculateScore(bestTwo, recipeTree, true)
+//
+//
+//        return bestTwo
     }
 
     private fun removeOne(start: State, recipeTree: Map<String, ProcessedItem>, field: Field): State {
@@ -270,6 +270,8 @@ class GlobalUpgradeManager(private val globalPlanner: GlobalPlanner) {
         var bestScore = 0.0
         val todo = mutableSetOf(start)
         val done = mutableSetOf<SimpleState>()
+        val scip = mutableSetOf<Cell>()
+
         while (todo.isNotEmpty()) {
             val current = todo.maxBy { it.buildings.size }
             todo.remove(current)
@@ -285,13 +287,11 @@ class GlobalUpgradeManager(private val globalPlanner: GlobalPlanner) {
                 (current.buildings - start.buildings).filter { it.type == BuildingType.BEACON || it.type == BuildingType.ASSEMBLER || it.type == BuildingType.SMELTER }
             logger.info { "Updating ${min.second}, ${min.first}. Todo ${todo.size}. Trying $added" }
 
-            if (GlobalPlanner.isSmelter) {
-                if (added.any { it.place.start.maxDistanceTo(removed.place.start) > 9 }) {
-                    logger.info { "Too far" }
-                    continue
-                }
-            }
-//            logger.trace { Utils.convertToJson(current) }
+//            if (added.any { it.place.start.maxDistanceTo(removed.place.start) > 9 }) {
+//                logger.info { "Too far" }
+//                continue
+//            }
+            logger.trace { Utils.convertToJson(current) }
             if (min.first > bestScore ||
                 (min.first == bestScore && current.freeCells.size > best.freeCells.size) ||
                 (min.first == bestScore && current.freeCells.size == best.freeCells.size && current.emptyCountScore > best.emptyCountScore)
@@ -301,18 +301,23 @@ class GlobalUpgradeManager(private val globalPlanner: GlobalPlanner) {
                 bestScore = min.first
             }
 
-            val special = min.second in setOf("electronic-circuit", "processing-unit")
+            if (done.size > 10000) {
+                logger.info { "Too much attempts" }
+                break
+            }
+
+            val special = min.second in setOf("electronic-circuit", "processing-unit", "steel-plate")
             val stepAllUnit = if (GlobalPlanner.isSmelter && GlobalPlanner.smelterType == "steel")
                 globalPlanner::stepAllSteel
             else
                 globalPlanner::stepAllUnit
             val next = globalPlanner.planeAllSingleStep(
-                min.first,
+                removed.place.start,
                 current,
                 field,
                 min.second,
                 recipeTree,
-                mutableSetOf(),
+                scip,
                 stepAllUnit,
                 limit = limit,
                 special = special
