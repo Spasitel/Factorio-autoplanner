@@ -36,6 +36,6 @@ data class Smelter(override val place: Place, var recipe: String, var moduleLvl:
     }
 
     override fun toString(): String {
-        return super.toString()
+        return super.toString() + " $recipe"
     }
 }

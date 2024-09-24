@@ -24,7 +24,7 @@ class GlobalUpgradeManager(private val globalPlanner: GlobalPlanner) {
         scoreManager.calculateScore(bestOne, recipeTree, true)
 
 //        if (GlobalPlanner.isSmelter) {
-            return bestOne
+        return bestOne
 //        }
 //        val bestTwo = removeTwo(bestOne, recipeTree, field)
 //        logger.info { "After remove two:" }
@@ -388,74 +388,85 @@ class GlobalUpgradeManager(private val globalPlanner: GlobalPlanner) {
         var bestScore = roboportsManager.planeRoboports(productivity, field, recipeTree)
         var attempts = 0
         var same = 0
-        while (true) {
-            val toRemove = listToRemove(best, field, removeBeacons = false).toMutableList()
-            val toRemoveSet = getPairsToRemove(toRemove, attempts)
-            logger.info { "Upgrade roboports two attempt: $attempts" }
-            val score = roboportsManager.planeRoboports(best, field, recipeTree)
-            if (score < bestScore) {
-                same = 0
-                bestScore = score
-                logger.info { "New Upgrade roboports two best score: $bestScore" }
-            } else if (same > toRemove.size) {
-                return best
-            } else {
-                same++
-            }
-            attempts++
-            var localBestScore = bestScore
-            while (toRemoveSet.isNotEmpty()) {
-                val (building, building2) = toRemoveSet.removeAt(0)
-                if (building.type == BuildingType.SMELTER && building2.type == BuildingType.SMELTER) continue //todo: minor: fix for smelters
-                if (building.type == BuildingType.ASSEMBLER && building2.type == BuildingType.ASSEMBLER &&
-                    (building as Assembler).recipe == (building2 as Assembler).recipe
-                ) continue
-
-                logger.info { "Upgrade roboports two: $building, $building2" }
-
-                val removed1 = removeWithConnectors(best, building)
-                val removed = removeWithConnectors(removed1, building2)
-
-                val recipe1 = if (building2 is Assembler) building2.recipe else (building2 as Smelter).recipe
-                val newBuilding1 = Utils.getBuilding(
-                    building.place.start,
-                    building2.type,
-                    recipe = recipe1
-                )
-                val add1 = removed.addBuilding(
-                    newBuilding1
-                )
-                val recipe2 = if (building is Assembler) building.recipe else (building as Smelter).recipe
-                val newBuilding2 = Utils.getBuilding(
-                    building2.place.start,
-                    building.type,
-                    recipe = recipe2
-                )
-                val add2 = add1!!.addBuilding(
-                    newBuilding2
-                )!!
-
-                if (scoreManager.calculateScoreForItem(add2, recipe1, recipeTree) < productionScore.first ||
-                    scoreManager.calculateScoreForItem(add2, recipe2, recipeTree) < productionScore.first
-                ) {
-                    logger.info { "Upgrade roboports two scip: $building, $building2" }
-                    continue
+        val startTime = System.currentTimeMillis()
+        try {
+            while (true) {
+                val toRemove = listToRemove(best, field, removeBeacons = false).toMutableList()
+                val toRemoveSet = getPairsToRemove(toRemove, attempts)
+                logger.info { "Upgrade roboports two attempt: $attempts" }
+                val score = roboportsManager.planeRoboports(best, field, recipeTree)
+                if (score < bestScore) {
+                    same = 0
+                    bestScore = score
+                    logger.info { "New Upgrade roboports two best score: $bestScore" }
+                } else if (same > toRemove.size) {
+                    return best
+                } else {
+                    same++
                 }
+                val time = System.currentTimeMillis()
+                if (time - startTime > 1000 * 60 * 60 * 10) {
+                    logger.info { "New Upgrade roboports two timeout" }
+                    return best
+                }
+                attempts++
+                var localBestScore = bestScore
+                while (toRemoveSet.isNotEmpty()) {
+                    val (building, building2) = toRemoveSet.removeAt(0)
+                    if (building.type == BuildingType.SMELTER && building2.type == BuildingType.SMELTER) continue //todo: minor: fix for smelters
+                    if (building.type == BuildingType.ASSEMBLER && building2.type == BuildingType.ASSEMBLER &&
+                        (building as Assembler).recipe == (building2 as Assembler).recipe
+                    ) continue
 
-                globalPlanner.planeChests(add2, field, newBuilding1, recipe1).forEach { chest1 ->
-                    globalPlanner.planeChests(chest1, field, newBuilding2, recipe2).forEach { current ->
-                        val newScore = roboportsManager.planeRoboports(current, field, recipeTree)
-                        if (newScore < localBestScore) {
-                            logger.info { "Upgrade roboports two update best $newScore" }
-                            logger.info { Utils.convertToJson(current) }
-                            localBestScore = newScore
-                            best = current
+                    logger.info { "Upgrade roboports two: $building, $building2" }
+
+                    val removed1 = removeWithConnectors(best, building)
+                    val removed = removeWithConnectors(removed1, building2)
+
+                    val recipe1 = if (building2 is Assembler) building2.recipe else (building2 as Smelter).recipe
+                    val newBuilding1 = Utils.getBuilding(
+                        building.place.start,
+                        building2.type,
+                        recipe = recipe1
+                    )
+                    val add1 = removed.addBuilding(
+                        newBuilding1
+                    )
+                    val recipe2 = if (building is Assembler) building.recipe else (building as Smelter).recipe
+                    val newBuilding2 = Utils.getBuilding(
+                        building2.place.start,
+                        building.type,
+                        recipe = recipe2
+                    )
+                    val add2 = add1!!.addBuilding(
+                        newBuilding2
+                    )!!
+
+                    if (scoreManager.calculateScoreForItem(add2, recipe1, recipeTree) < productionScore.first ||
+                        scoreManager.calculateScoreForItem(add2, recipe2, recipeTree) < productionScore.first
+                    ) {
+                        logger.info { "Upgrade roboports two scip: $building, $building2" }
+                        continue
+                    }
+
+
+                    globalPlanner.planeChests(add2, field, newBuilding1, recipe1).forEach { chest1 ->
+                        globalPlanner.planeChests(chest1, field, newBuilding2, recipe2).forEach { current ->
+                            val newScore = roboportsManager.planeRoboports(current, field, recipeTree)
+                            if (newScore < localBestScore) {
+                                logger.info { "Upgrade roboports two update best $newScore" }
+                                logger.info { Utils.convertToJson(current) }
+                                localBestScore = newScore
+                                best = current
+                            }
                         }
                     }
                 }
             }
+        } catch (e: InterruptedException) {
+            logger.info { "Interrupted" }
+            return best
         }
-
     }
 
     fun upgradeRobots(start: State, recipeTree: Map<String, ProcessedItem>, field: Field): State {
@@ -594,6 +605,7 @@ class GlobalUpgradeManager(private val globalPlanner: GlobalPlanner) {
                 is Assembler -> 0.4 * to
                 is ChemicalPlant -> 0.3 * to
                 is OilRefinery -> 0.3 * to
+                is Smelter -> 0.2 * to
                 else -> throw IllegalStateException("Wrong type")
             }
             val number = (it.value / downgrade).toInt()
@@ -604,6 +616,7 @@ class GlobalUpgradeManager(private val globalPlanner: GlobalPlanner) {
                     is Assembler -> b.moduleLvl
                     is ChemicalPlant -> b.moduleLvl
                     is OilRefinery -> b.moduleLvl
+                    is Smelter -> b.moduleLvl
                     else -> throw IllegalStateException("Wrong type")
                 }
                 if (currentModule == to + 1) {
@@ -611,6 +624,7 @@ class GlobalUpgradeManager(private val globalPlanner: GlobalPlanner) {
                         is Assembler -> b.moduleLvl = to
                         is ChemicalPlant -> b.moduleLvl = to
                         is OilRefinery -> b.moduleLvl = to
+                        is Smelter -> b.moduleLvl = to
                         else -> throw IllegalStateException("Wrong type")
                     }
                     if (scoreManager.calculateScore(downgraded, recipeTree, false).first < score - 0.0001) {
@@ -619,6 +633,7 @@ class GlobalUpgradeManager(private val globalPlanner: GlobalPlanner) {
                             is Assembler -> b.moduleLvl = to + 1
                             is ChemicalPlant -> b.moduleLvl = to + 1
                             is OilRefinery -> b.moduleLvl = to + 1
+                            is Smelter -> b.moduleLvl = to + 1
                             else -> throw IllegalStateException("Wrong type")
                         }
                     }
