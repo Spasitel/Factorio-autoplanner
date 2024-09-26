@@ -58,15 +58,24 @@ class GlobalPlanner {
         val upgrade = planeUpgrade(recipeTree, fieldPrep, best)
 
         val downgrade = if (isSmelter) upgrade else planeDowngrade(upgrade, fieldPrep, recipeTree)
+        val score = scoreManager.calculateScore(downgrade, recipeTree, false)
         val result = if (isSmelter) planeSmelterChests(downgrade, fieldPrep) else planeFinalChestsAndInserters(
             downgrade,
             fieldPrep,
-            recipeTree
+            recipeTree,
+            score.first
         )
         logger.info { "========= planeGlobal result =========" }
         logger.info { Utils.convertToJson(result) }
         if (!isSmelter) {
-            logger.info { "Roboport score:" + RoboportsManager().planeRoboports(result, fieldFull, recipeTree) }
+            logger.info {
+                "Roboport score:" + RoboportsManager().planeRoboports(
+                    result,
+                    fieldFull,
+                    recipeTree,
+                    score.first
+                )
+            }
         }
     }
 
@@ -79,14 +88,14 @@ class GlobalPlanner {
     }
 
     private fun planeFinalChestsAndInserters(
-        state: State, field: Field, recipeTree: Map<String, ProcessedItem>
+        state: State, field: Field, recipeTree: Map<String, ProcessedItem>, score: Double
     ): State {
         enumerateBuildings(state)
         // set restricts for chests
         // calculate provider chests with amount of items
         val roboportsManager = RoboportsManager()
         // calculate request chests with amount of items
-        val requests = roboportsManager.calculateRequestChests(state, field, recipeTree)
+        val requests = roboportsManager.calculateRequestChests(state, field, recipeTree, score)
         requests.forEach { (item, pairs) ->
             pairs.forEach { (chest, amount) ->
                 chest.items[item] = (amount * 60).toInt() + 1
@@ -103,7 +112,7 @@ class GlobalPlanner {
                 }
             }
 
-        val providers = roboportsManager.calculateProviderChests(state, field, recipeTree)
+        val providers = roboportsManager.calculateProviderChests(state, field, recipeTree, score)
         providers.forEach { (item, pairs) ->
             pairs.forEach { (chest, a) ->
                 val amount = (a * 60).toInt() + 1
@@ -911,7 +920,8 @@ class GlobalPlanner {
         //upgrade productivity
         current = upgradeManager.upgradeProductivity(current, recipeTree, field)
         //upgrade robots
-        current = upgradeManager.upgradeRobotsTwo(current, recipeTree, field)
+        val score = scoreManager.calculateScore(current, recipeTree, false)
+        current = upgradeManager.upgradeRobotsTwo(current, recipeTree, field, score.first)
 //        current = upgradeManager.upgradeRobots(current, recipeTree, field)
 
 

@@ -378,14 +378,19 @@ class GlobalUpgradeManager(private val globalPlanner: GlobalPlanner) {
         return result
     }
 
-    fun upgradeRobotsTwo(productivity: State, recipeTree: Map<String, ProcessedItem>, field: Field): State {
+    fun upgradeRobotsTwo(
+        productivity: State,
+        recipeTree: Map<String, ProcessedItem>,
+        field: Field,
+        score: Double
+    ): State {
         //do not move assemblers and beacons and smelters
         //move chests and inserters
         //swap assemblers recipes - if not reducing productivity
         //swap electronic circuit recipes - if not reducing productivity
         val productionScore = scoreManager.calculateScore(productivity, recipeTree, false)
         var best = productivity
-        var bestScore = roboportsManager.planeRoboports(productivity, field, recipeTree)
+        var bestScore = roboportsManager.planeRoboports(productivity, field, recipeTree, score)
         var attempts = 0
         var same = 0
         val startTime = System.currentTimeMillis()
@@ -394,7 +399,7 @@ class GlobalUpgradeManager(private val globalPlanner: GlobalPlanner) {
                 val toRemove = listToRemove(best, field, removeBeacons = false).toMutableList()
                 val toRemoveSet = getPairsToRemove(toRemove, attempts)
                 logger.info { "Upgrade roboports two attempt: $attempts" }
-                val score = roboportsManager.planeRoboports(best, field, recipeTree)
+                val score = roboportsManager.planeRoboports(best, field, recipeTree, score)
                 if (score < bestScore) {
                     same = 0
                     bestScore = score
@@ -405,7 +410,7 @@ class GlobalUpgradeManager(private val globalPlanner: GlobalPlanner) {
                     same++
                 }
                 val time = System.currentTimeMillis()
-                if (time - startTime > 1000 * 60 * 60 * 10) {
+                if (time - startTime > 1000 * 60 * 60 * 8) {
                     logger.info { "New Upgrade roboports two timeout" }
                     return best
                 }
@@ -452,7 +457,7 @@ class GlobalUpgradeManager(private val globalPlanner: GlobalPlanner) {
 
                     globalPlanner.planeChests(add2, field, newBuilding1, recipe1).forEach { chest1 ->
                         globalPlanner.planeChests(chest1, field, newBuilding2, recipe2).forEach { current ->
-                            val newScore = roboportsManager.planeRoboports(current, field, recipeTree)
+                            val newScore = roboportsManager.planeRoboports(current, field, recipeTree, score)
                             if (newScore < localBestScore) {
                                 logger.info { "Upgrade roboports two update best $newScore" }
                                 logger.info { Utils.convertToJson(current) }
@@ -469,15 +474,15 @@ class GlobalUpgradeManager(private val globalPlanner: GlobalPlanner) {
         }
     }
 
-    fun upgradeRobots(start: State, recipeTree: Map<String, ProcessedItem>, field: Field): State {
+    fun upgradeRobots(start: State, recipeTree: Map<String, ProcessedItem>, field: Field, score: Double): State {
         var best = start
-        var bestScore = roboportsManager.planeRoboports(start, field, recipeTree)
+        var bestScore = roboportsManager.planeRoboports(start, field, recipeTree, score)
         var attempts = 0
         var same = 0
         while (true) {
             val toRemove = listToRemove(best, field, removeBeacons = false, includeScip = true).toMutableList()
             logger.info { "Upgrade roboports attempt: $attempts" }
-            val score = roboportsManager.planeRoboports(best, field, recipeTree)
+            val score = roboportsManager.planeRoboports(best, field, recipeTree, score)
             if (score < bestScore) {
                 same = 0
                 bestScore = score
@@ -497,10 +502,11 @@ class GlobalUpgradeManager(private val globalPlanner: GlobalPlanner) {
                 val removed = removeWithConnectors(best, building)
 
                 val add = removed.addBuilding(building)!!
-                val recipe = if (building is Assembler) building.recipe else "stone-brick"
+                val recipe =
+                    if (building is Assembler) building.recipe else "stone-brick" //todo: unused: fix for smelters
 
                 globalPlanner.planeChests(add, field, building, recipe).forEach { current ->
-                    val newScore = roboportsManager.planeRoboports(current, field, recipeTree)
+                    val newScore = roboportsManager.planeRoboports(current, field, recipeTree, score)
                     if (newScore < localBestScore) {
                         logger.info { "Upgrade roboports update best $newScore" }
                         logger.info { Utils.convertToJson(current) }

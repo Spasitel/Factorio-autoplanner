@@ -120,12 +120,13 @@ class GreedyPlanner {
         var newItems = if (type == BuildingType.PROVIDER_CHEST) {
             mutableSetOf(unit)
         } else {
-            when (unit) {
-                "steel-plate", "iron-plate", "iron-plate#steel" -> mutableSetOf("iron-ore")
-                "copper-plate" -> mutableSetOf("copper-ore")
-                "stone-brick" -> mutableSetOf("stone")
-                else -> mutableSetOf()
-            }
+//            when (unit) {
+//                "steel-plate", "iron-plate", "iron-plate#steel" -> mutableSetOf("iron-ore")
+//                "copper-plate" -> mutableSetOf("copper-ore")
+//                "stone-brick" -> mutableSetOf("stone")
+//                else ->
+            mutableSetOf()
+//            }
         }
         if (withoutChests.map.containsKey(chest.second)) {
             newItems = if (type == BuildingType.PROVIDER_CHEST) {

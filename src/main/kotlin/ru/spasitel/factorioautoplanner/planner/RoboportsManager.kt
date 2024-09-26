@@ -6,16 +6,22 @@ import ru.spasitel.factorioautoplanner.data.ProcessedItem
 import ru.spasitel.factorioautoplanner.data.State
 import ru.spasitel.factorioautoplanner.data.Utils
 import ru.spasitel.factorioautoplanner.data.building.*
+import kotlin.math.min
 
 class RoboportsManager {
     private val logger = KotlinLogging.logger {}
     private val scoreManager = ScoreManager()
 
-    fun planeRoboports(state: State, field: Field, recipeTree: Map<String, ProcessedItem>): Double {
+    fun planeRoboports(
+        state: State,
+        field: Field,
+        recipeTree: Map<String, ProcessedItem>,
+        score: Double
+    ): Double {
         // calculate provider chests with amount of items
-        val providers = calculateProviderChests(state, field, recipeTree)
+        val providers = calculateProviderChests(state, field, recipeTree, score)
         // calculate request chests with amount of items
-        val requests = calculateRequestChests(state, field, recipeTree)
+        val requests = calculateRequestChests(state, field, recipeTree, score)
         // calculate number of roboports
         val sum = calculateRoboports(providers, requests)
 
@@ -50,7 +56,8 @@ class RoboportsManager {
     fun calculateRequestChests(
         state: State,
         field: Field,
-        recipeTree: Map<String, ProcessedItem>
+        recipeTree: Map<String, ProcessedItem>,
+        score: Double
     ): Map<String, Set<Pair<RequestChest, Double>>> {
         val result = mutableMapOf<String, MutableSet<Pair<RequestChest, Double>>>()
         for (request in state.buildings.filterIsInstance<RequestChest>()) {
@@ -94,7 +101,7 @@ class RoboportsManager {
                         continue
                     }
                     val set = result.getOrDefault(ingredient.key, mutableSetOf())
-                    val amount = calculateRequestAmount(source, state, recipeTree, item, ingredient.key)
+                    val amount = calculateRequestAmount(source, state, recipeTree, item, ingredient.key, score)
                     set.add(Pair(request, amount))
                     result[ingredient.key] = set
                 }
@@ -108,9 +115,10 @@ class RoboportsManager {
         state: State,
         recipeTree: Map<String, ProcessedItem>,
         item: String,
-        key: String
+        key: String,
+        score: Double
     ): Double {
-        val productivityOut = calculateProviderAmount(source, state, recipeTree, item)
+        val productivityOut = calculateProviderAmount(source, state, recipeTree, item, score)
         val recipe = recipeTree[item.split("#")[0]]!!
         return productivityOut / recipe.amount * recipe.ingredients[key]!!
     }
@@ -118,7 +126,8 @@ class RoboportsManager {
     fun calculateProviderChests(
         state: State,
         field: Field,
-        recipeTree: Map<String, ProcessedItem>
+        recipeTree: Map<String, ProcessedItem>,
+        score: Double
     ): Map<String, Set<Pair<ProviderChest, Double>>> {
         val result = mutableMapOf<String, MutableSet<Pair<ProviderChest, Double>>>()
         for (provider in state.buildings.filterIsInstance<ProviderChest>()) {
@@ -153,7 +162,7 @@ class RoboportsManager {
                     else -> throw IllegalStateException("Unknown source $source")
                 }
                 val set = result.getOrDefault(item, mutableSetOf())
-                val amount = calculateProviderAmount(source, state, recipeTree, item)
+                val amount = calculateProviderAmount(source, state, recipeTree, item, score)
                 set.add(Pair(provider, amount))
                 result[item] = set
             }
@@ -165,11 +174,12 @@ class RoboportsManager {
         source: Building,
         state: State,
         recipeTree: Map<String, ProcessedItem>,
-        item: String
+        item: String,
+        score: Double
     ): Double {
         val productivity = scoreManager.calculateScoreForBuilding(Pair(state, source), item)
         val recipe = recipeTree[item.split("#")[0]]!!
-        return productivity / recipe.totalProductivity
+        return min(productivity / recipe.totalProductivity, recipe.amount * score)
     }
 
 }
