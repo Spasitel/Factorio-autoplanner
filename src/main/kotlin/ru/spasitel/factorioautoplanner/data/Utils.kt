@@ -39,7 +39,7 @@ object Utils {
         direction: Int? = null,
         liquid: String? = null,
         recipe: String? = null,
-        kind: String = "fast-inserter",
+        kind: String = "stack-inserter",
         items: MutableSet<String> = mutableSetOf(),
         moduleLvl: Int = 3
     ): Building {

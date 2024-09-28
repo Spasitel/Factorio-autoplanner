@@ -21,8 +21,8 @@ class GlobalPlanner {
         Utils.checkLiquids = true
 
         var double = false
-        var min = 1.4616
-        var max = 1.545
+        var min = 1.61
+        var max = 2.3
         var best: State? = null
         val delta = if (isSmelter) 1.0 else 0.05
 
@@ -102,13 +102,15 @@ class GlobalPlanner {
             }
         }
         state.buildings.filterIsInstance<Inserter>().filter { state.map[it.from()] is RequestChest }
-            .filter { it.kind == "stack-inserter" }.forEach {
+            .forEach {
                 val amount = (state.map[it.from()] as RequestChest).items.map { c -> c.value }.sum()
-                //downgrade inserters
+                //set inserter type
                 if (amount < 100) {
                     it.kind = "inserter"
                 } else if (amount < 300) {
                     it.kind = "fast-inserter"
+                } else {
+                    it.kind = "stack-inserter"
                 }
             }
 
@@ -122,13 +124,13 @@ class GlobalPlanner {
                 inserters.forEach { it.condition = Triple(chest.id, item, amount) }
                 inserters.forEach { chest.connections.add(it.id) }
                 inserters.forEach { inserter ->
-                    if (inserter.kind == "stack-inserter") {
-                        //downgrade inserters
-                        if (amount.div(inserters.size) < 150) {
-                            inserter.kind = "inserter"
-                        } else if (amount.div(inserters.size) < 415) {
-                            inserter.kind = "fast-inserter"
-                        }
+                    //set inserter type
+                    if (amount.div(inserters.size) < 100) {
+                        inserter.kind = "inserter"
+                    } else if (amount.div(inserters.size) < 300) {
+                        inserter.kind = "fast-inserter"
+                    } else {
+                        inserter.kind = "stack-inserter"
                     }
                 }
             }
@@ -213,7 +215,15 @@ class GlobalPlanner {
     fun stepSteel(
         start: Cell, current: State, field: Field, recipeTree: Map<String, ProcessedItem>, unit: String
     ): Pair<State?, Double?> {
-        val greenWithConnections = TreeSet<Pair<State, Building>> { a, b -> compareForUnit(a, b, "steel-plate") }
+        val freeCells = current.freeCells.size
+        val greenWithConnections = TreeSet<Pair<State, Building>> { a, b ->
+            compareForUnit(
+                a,
+                b,
+                "steel-plate",
+                freeCells
+            )
+        }
         val greenBuilding = Utils.getBuilding(
             start, BuildingType.SMELTER, recipe = "steel-plate"
         )
@@ -224,8 +234,9 @@ class GlobalPlanner {
         //add copper wire
 
         for (greenWithConnection in greenWithConnections) {
+            val freeCellsGreen = greenWithConnection.first.freeCells.size
             val wireWithConnections =
-                TreeSet<Pair<State, Building>> { a, b -> compareForUnit(a, b, "iron-plate#steel") }
+                TreeSet<Pair<State, Building>> { a, b -> compareForUnit(a, b, "iron-plate#steel", freeCellsGreen) }
             val wirePositions = placeConnected(
                 greenWithConnection.first, greenWithConnection.second, field, "iron-plate#steel"
             )
@@ -349,6 +360,9 @@ class GlobalPlanner {
     ): Pair<State?, Double?> {
         var next: State? = null
         var nextScore: Double? = null
+        val startScore = scoreManager.calculateScoreForItem(current, unit, recipeTree)
+        var nextScoreBySquare = 0.0
+
         if (score > 0) {
             next = planeBeacon(current, field, unit, recipeTree)
             if (next != null && (unit == "processing-unit" || unit == "electronic-circuit" || unit == "steel-plate")) {
@@ -358,6 +372,9 @@ class GlobalPlanner {
                 next = planeBeacon(next, field, unit, recipeTree)
             }
             nextScore = next?.let { scoreManager.calculateScoreForItem(it, unit, recipeTree) }
+            nextScore?.let {
+                nextScoreBySquare = (it - startScore) / (current.freeCells.size - next!!.freeCells.size)
+            }
         }
         if (special) {
             return Pair(next, nextScore)
@@ -372,11 +389,19 @@ class GlobalPlanner {
             }
             // sort by score
             val pair = stepUnit(start, current, field, recipeTree, unit)
-            if (pair.first == null) {
+            if (pair.first == null || pair.second == null) {
                 scip.add(start)
                 continue
             }
-            if (next == null || pair.second!! > nextScore!! || (pair.second == nextScore && pair.first!!.freeCells.size > next.freeCells.size) || (pair.second == nextScore && pair.first!!.freeCells.size == next.freeCells.size && pair.first!!.emptyCountScore > next.emptyCountScore)) {
+            val scoreBySquare = (pair.second!! - startScore) / (current.freeCells.size - pair.first!!.freeCells.size)
+            if (next == null ||
+                scoreBySquare > nextScoreBySquare ||
+                (scoreBySquare == nextScoreBySquare && (
+                        pair.second!! > nextScore!! ||
+                                (pair.second == nextScore && pair.first!!.freeCells.size > next.freeCells.size) ||
+                                (pair.second == nextScore && pair.first!!.freeCells.size == next.freeCells.size && pair.first!!.emptyCountScore > next.emptyCountScore)))
+            ) {
+                nextScoreBySquare = scoreBySquare
                 next = pair.first
                 nextScore = pair.second
             }
@@ -434,56 +459,18 @@ class GlobalPlanner {
         return result
     }
 
-    private fun stepElectricEngine(
-        start: Cell, current: State, field: Field, recipeTree: Map<String, ProcessedItem>, unit: String
-    ): Pair<State?, Double?> {
-        val procWithConnections = TreeSet<Pair<State, Building>> { a, b -> compareForUnit(a, b, unit) }
-        for (direction in Direction.entries) {
-            val procBuilding = Utils.getBuilding(
-                start, BuildingType.ASSEMBLER, direction = direction.direction, recipe = unit
-            )
-            val proc = current.addBuilding(procBuilding) ?: continue
-            val planeLiquid = planeLiquid(proc, field, procBuilding, "lubricant") ?: continue
-            // add chest and inserters
-            val planeChest = planeChests(planeLiquid, field, procBuilding, unit)
-            planeChest.map { it to procBuilding }.forEach { procWithConnections.add(it) }
-        }
-        if (procWithConnections.isNotEmpty()) {
-            val bestWire = procWithConnections.first()
-            val bestWireState = bestWire.first
-            val bestWireScore = scoreManager.calculateScoreForItem(bestWireState, unit, recipeTree)
-            return Pair(bestWireState, bestWireScore)
-        }
-        return Pair(null, null)
-    }
-
-    private fun stepBattery(
-        start: Cell, current: State, field: Field, recipeTree: Map<String, ProcessedItem>, unit: String
-    ): Pair<State?, Double?> {
-        val procWithConnections = TreeSet<Pair<State, Building>> { a, b -> compareForUnit(a, b, unit) }
-        for (direction in Direction.entries) {
-            val procBuilding = Utils.getBuilding(
-                start, BuildingType.CHEMICAL_PLANT, direction = direction.direction, recipe = unit
-            )
-            val proc = current.addBuilding(procBuilding) ?: continue
-            val planeLiquid = planeLiquid(proc, field, procBuilding, "sulfuric-acid") ?: continue
-            // add chest and inserters
-            val planeChest = planeChests(planeLiquid, field, procBuilding, unit)
-            planeChest.map { it to procBuilding }.forEach { procWithConnections.add(it) }
-        }
-        if (procWithConnections.isNotEmpty()) {
-            val bestWire = procWithConnections.first()
-            val bestWireState = bestWire.first
-            val bestWireScore = scoreManager.calculateScoreForItem(bestWireState, unit, recipeTree)
-            return Pair(bestWireState, bestWireScore)
-        }
-        return Pair(null, null)
-    }
-
     private fun stepProcessingUnit(
         start: Cell, current: State, field: Field, recipeTree: Map<String, ProcessedItem>, unit: String
     ): Pair<State?, Double?> {
-        val procWithConnections = TreeSet<Pair<State, Building>> { a, b -> compareForUnit(a, b, "processing-unit") }
+        val freeCells = current.freeCells.size
+        val procWithConnections = TreeSet<Pair<State, Building>> { a, b ->
+            compareForUnit(
+                a,
+                b,
+                "processing-unit",
+                freeCells
+            )
+        }
         for (direction in Direction.entries) {
             val procBuilding = Utils.getBuilding(
                 start, BuildingType.ASSEMBLER, direction = direction.direction, recipe = "processing-unit"
@@ -496,8 +483,16 @@ class GlobalPlanner {
         }
         //add green circuits, sort by score
         for (blue in procWithConnections) {
+            val freeCellsBlue = blue.first.freeCells.size
             val greenWithConnections =
-                TreeSet<Pair<State, Building>> { a, b -> compareForUnit(a, b, "electronic-circuit#blue") }
+                TreeSet<Pair<State, Building>> { a, b ->
+                    compareForUnit(
+                        a,
+                        b,
+                        "electronic-circuit#blue",
+                        freeCellsBlue
+                    )
+                }
             val greenPositions = placeConnected(blue.first, blue.second, field, "electronic-circuit#blue")
             for (greenPosition in greenPositions) {
                 val greenBuilding = Utils.getBuilding(
@@ -512,8 +507,9 @@ class GlobalPlanner {
             //add copper wire
 
             for (green in greenWithConnections) {
+                val freeCellsGreen = green.first.freeCells.size
                 val wireWithConnections =
-                    TreeSet<Pair<State, Building>> { a, b -> compareForUnit(a, b, "copper-cable#blue") }
+                    TreeSet<Pair<State, Building>> { a, b -> compareForUnit(a, b, "copper-cable#blue", freeCellsGreen) }
                 val wirePositions = placeConnected(green.first, green.second, field, "copper-cable#blue")
                 for (wirePosition in wirePositions) {
                     val wireBuilding = Utils.getBuilding(
@@ -540,7 +536,15 @@ class GlobalPlanner {
     private fun stepCircuits(
         start: Cell, current: State, field: Field, recipeTree: Map<String, ProcessedItem>, unit: String
     ): Pair<State?, Double?> {
-        val greenWithConnections = TreeSet<Pair<State, Building>> { a, b -> compareForUnit(a, b, "electronic-circuit") }
+        val freeCells = current.freeCells.size
+        val greenWithConnections = TreeSet<Pair<State, Building>> { a, b ->
+            compareForUnit(
+                a,
+                b,
+                "electronic-circuit",
+                freeCells
+            )
+        }
         val greenBuilding = Utils.getBuilding(
             start, BuildingType.ASSEMBLER, recipe = "electronic-circuit"
         )
@@ -551,8 +555,9 @@ class GlobalPlanner {
         //add copper wire
 
         for (greenWithConnection in greenWithConnections) {
+            val freeCellsGreen = greenWithConnection.first.freeCells.size
             val wireWithConnections =
-                TreeSet<Pair<State, Building>> { a, b -> compareForUnit(a, b, "copper-cable#green") }
+                TreeSet<Pair<State, Building>> { a, b -> compareForUnit(a, b, "copper-cable#green", freeCellsGreen) }
             val wirePositions = placeConnected(
                 greenWithConnection.first, greenWithConnection.second, field, "copper-cable#green"
             )
@@ -753,14 +758,29 @@ class GlobalPlanner {
         return sqrt((from.x - to.x) * (from.x - to.x) + (from.y - to.y) * (from.y - to.y).toDouble())
     }
 
-    private fun compareForUnit(a: Pair<State, Building>, b: Pair<State, Building>, unit: String): Int {
+    private fun compareForUnit(
+        a: Pair<State, Building>,
+        b: Pair<State, Building>,
+        unit: String,
+        freeCellsOrig: Int
+    ): Int {
         val aScore = scoreManager.calculateScoreForBuilding(a, unit)
         val bScore = scoreManager.calculateScoreForBuilding(b, unit)
+
+        val aSize = a.first.freeCells.size
+        val bSize = b.first.freeCells.size
+
+        val aSquareScore = aScore / (aSize - freeCellsOrig)
+        val bSquareScore = bScore / (bSize - freeCellsOrig)
+
+        if (aSquareScore != bSquareScore) {
+            return aSquareScore.compareTo(bSquareScore)
+        }
+
         if (aScore != bScore) {
             return bScore.compareTo(aScore)
         }
-        val aSize = a.first.freeCells.size
-        val bSize = b.first.freeCells.size
+
         if (aSize != bSize) {
             return bSize.compareTo(aSize)
         }
@@ -780,6 +800,12 @@ class GlobalPlanner {
         var score = 0.0
         var best: State? = null
 
+        val origScore =
+            if (unit == "processing-unit" || unit == "electronic-circuit" || unit == "steel-plate") scoreManager.calculateScoreForItem(
+                current,
+                unit,
+                recipeTree
+            ) else 0.0
         val buildingsForUnit = when (unit) {
             //blue and green - calculate which in chain is worse
             "processing-unit", "electronic-circuit", "steel-plate" -> findLeastPerformed(current, unit)
@@ -798,8 +824,13 @@ class GlobalPlanner {
                         unit,
                         recipeTree
                     ) else scoreManager.calculateScoreForBuilding(Pair(newState, beacon), unit)
-                if (best == null || newScore > score || (newScore == score && newState.freeCells.size > best!!.freeCells.size)) {
-                    score = newScore
+
+                val newScoreBySquare = (newScore - origScore) / (current.freeCells.size - newState.freeCells.size)
+                if (best == null ||
+                    newScoreBySquare > score ||
+                    (newScoreBySquare == score && newState.freeCells.size < best!!.freeCells.size)
+                ) {
+                    score = newScoreBySquare
                     best = newState
                 }
             }
@@ -867,7 +898,8 @@ class GlobalPlanner {
     fun stepUnit(
         start: Cell, current: State, field: Field, recipeTree: Map<String, ProcessedItem>, unit: String
     ): Pair<State?, Double?> {
-        val withConnections = TreeSet<Pair<State, Building>> { a, b -> compareForUnit(a, b, unit) }
+        val freeCells = current.freeCells.size
+        val withConnections = TreeSet<Pair<State, Building>> { a, b -> compareForUnit(a, b, unit, freeCells) }
         val type = if (unit in setOf(
                 "stone-brick", "copper-plate", "iron-plate", "steel-plate"
             )
@@ -879,13 +911,14 @@ class GlobalPlanner {
         // add chest and inserters
         val planeChest = planeChests(withBuilding, field, building, unit)
         planeChest.map { it to building }.forEach { withConnections.add(it) }
-        withConnections.forEach {
-            val bestWire = it
+        if (withConnections.isEmpty())
+            return Pair(null, null)
+        else {
+            val bestWire = withConnections.first()
             val bestWireState = bestWire.first
             val bestWireScore = scoreManager.calculateScoreForItem(bestWireState, unit, recipeTree)
             return Pair(bestWireState, bestWireScore)
         }
-        return Pair(null, null)
     }
 
     fun stepAllUnit(
@@ -922,7 +955,7 @@ class GlobalPlanner {
         //upgrade robots
         val score = scoreManager.calculateScore(current, recipeTree, false)
         current = upgradeManager.upgradeRobotsTwo(current, recipeTree, field, score.first)
-//        current = upgradeManager.upgradeRobots(current, recipeTree, field)
+        current = upgradeManager.upgradeRobots(current, recipeTree, field, score.first)
 
 
         return current

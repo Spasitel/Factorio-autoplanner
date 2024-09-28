@@ -190,13 +190,17 @@ class ScoreManager {
         greedy: State,
         recipeTree: Map<String, ProcessedItem>,
         log: Boolean
-    ) = recipeTree.keys.filter { it !in TechnologyTreePlanner.base }
-        .map {
-            val score = calculateScoreForItem(greedy, it, recipeTree)
-            if (log) {
-                val buildings = buildingsForUnit(it, greedy).size
-                logger.debug { "For $it: buildings $buildings score $score" }
+    ): List<Pair<Double, String>> {
+        val result = recipeTree.keys.filter { it !in TechnologyTreePlanner.base }
+            .map {
+                Pair(calculateScoreForItem(greedy, it, recipeTree), it)
             }
-            Pair(score, it)
+        if (log) {
+            result.sortedBy { it.first }.forEach {
+                val buildings = buildingsForUnit(it.second, greedy).size
+                logger.debug { "For ${it.second}: buildings $buildings score ${it.first}" }
+            }
         }
+        return result
+    }
 }

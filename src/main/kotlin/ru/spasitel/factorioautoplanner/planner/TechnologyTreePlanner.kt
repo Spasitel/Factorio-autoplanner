@@ -15,10 +15,7 @@ class TechnologyTreePlanner {
         val json = this::class.java.getResource("/recipes.json")!!.readText()
         val fromJson = gson.fromJson(json, RecipesDTO::class.java)
         val corrected = fromJson.filter {
-            it.name != "solid-fuel-from-petroleum-gas"
-                    && it.name != "solid-fuel-from-heavy-oil"
-                    && it.name != "processing-unit"
-                    && it.name != "electronic-circuit"
+            it.name !in excluded_recipes
         }.map {
             if (it.results?.size == 1) {
                 it.copy(result = it.results[0].name, result_count = it.results[0].amount)
@@ -282,6 +279,7 @@ class TechnologyTreePlanner {
             "iron-plate",
             "copper-plate",
             "steel-plate",
+            "steel-plate-fixed",
 
             "empty-barrel",
             "uranium-processing",
@@ -301,6 +299,14 @@ class TechnologyTreePlanner {
             "kovarex-enrichment-process",
             "electronic-circuit-fixed",
             "processing-unit-fixed",
+        )
+
+        val excluded_recipes = setOf(
+            "solid-fuel-from-petroleum-gas",
+            "solid-fuel-from-heavy-oil",
+            "processing-unit",
+            "electronic-circuit",
+            "steel-plate"
         )
 
     }

@@ -890,37 +890,6 @@
     ]
   },
   {
-    "name": "electronic-circuit-fixed",
-    "energy_required": 7,
-    "result": "electronic-circuit",
-    "result_count": 14,
-    "ingredients": [
-      {
-        "name": "iron-plate",
-        "amount": 14
-      },
-      {
-        "name": "copper-plate",
-        "amount": 15
-      }
-    ]
-  },
-  {
-    "name": "electronic-circuit",
-    "energy_required": 0.5,
-    "result": "electronic-circuit",
-    "ingredients": [
-      {
-        "name": "iron-plate",
-        "amount": 1
-      },
-      {
-        "name": "copper-cable",
-        "amount": 3
-      }
-    ]
-  },
-  {
     "name": "transport-belt",
     "energy_required": 0.5,
     "result_count": 2,
@@ -1931,18 +1900,6 @@
     ]
   },
   {
-    "name": "steel-plate",
-    "energy_required": 16,
-    "category": "smelting",
-    "result": "steel-plate",
-    "ingredients": [
-      {
-        "name": "iron-plate",
-        "amount": 5
-      }
-    ]
-  },
-  {
     "name": "arithmetic-combinator",
     "energy_required": 0.5,
     "result": "arithmetic-combinator",
@@ -2845,51 +2802,6 @@
     ]
   },
   {
-    "name": "processing-unit",
-    "energy_required": 10,
-    "category": "crafting-with-fluid",
-    "result": "processing-unit",
-    "ingredients": [
-      {
-        "name": "electronic-circuit",
-        "amount": 20
-      },
-      {
-        "name": "advanced-circuit",
-        "amount": 2
-      },
-      {
-        "name": "sulfuric-acid",
-        "amount": 5
-      }
-    ]
-  },
-  {
-    "name": "processing-unit-fixed",
-    "energy_required": 490,
-    "category": "crafting-with-fluid",
-    "result": "processing-unit",
-    "result_count": 49,
-    "ingredients": [
-      {
-        "name": "iron-plate",
-        "amount": 700
-      },
-      {
-        "name": "copper-plate",
-        "amount": 750
-      },
-      {
-        "name": "advanced-circuit",
-        "amount": 98
-      },
-      {
-        "name": "sulfuric-acid",
-        "amount": 245
-      }
-    ]
-  },
-  {
     "name": "logistic-robot",
     "energy_required": 0.5,
     "result": "logistic-robot",
@@ -3682,6 +3594,107 @@
       {
         "name": "military-science-pack",
         "amount": 1
+      }
+    ]
+  },
+  {
+    "name": "steel-plate",
+    "energy_required": 16,
+    "category": "smelting",
+    "result": "steel-plate",
+    "ingredients": [
+      {
+        "name": "iron-plate",
+        "amount": 5
+      }
+    ]
+  },
+  {
+    "name": "steel-plate-fixed",
+    "energy_required": 96,
+    "category": "smelting",
+    "result": "steel-plate",
+    "result_count": 6,
+    "ingredients": [
+      {
+        "name": "iron-ore",
+        "amount": 25
+      }
+    ]
+  },
+  {
+    "name": "electronic-circuit-fixed",
+    "energy_required": 7,
+    "result": "electronic-circuit",
+    "result_count": 14,
+    "ingredients": [
+      {
+        "name": "iron-plate",
+        "amount": 14
+      },
+      {
+        "name": "copper-plate",
+        "amount": 15
+      }
+    ]
+  },
+  {
+    "name": "electronic-circuit",
+    "energy_required": 0.5,
+    "result": "electronic-circuit",
+    "ingredients": [
+      {
+        "name": "iron-plate",
+        "amount": 1
+      },
+      {
+        "name": "copper-cable",
+        "amount": 3
+      }
+    ]
+  },
+  {
+    "name": "processing-unit",
+    "energy_required": 10,
+    "category": "crafting-with-fluid",
+    "result": "processing-unit",
+    "ingredients": [
+      {
+        "name": "electronic-circuit",
+        "amount": 20
+      },
+      {
+        "name": "advanced-circuit",
+        "amount": 2
+      },
+      {
+        "name": "sulfuric-acid",
+        "amount": 5
+      }
+    ]
+  },
+  {
+    "name": "processing-unit-fixed",
+    "energy_required": 490,
+    "category": "crafting-with-fluid",
+    "result": "processing-unit",
+    "result_count": 49,
+    "ingredients": [
+      {
+        "name": "iron-plate",
+        "amount": 700
+      },
+      {
+        "name": "copper-plate",
+        "amount": 750
+      },
+      {
+        "name": "advanced-circuit",
+        "amount": 98
+      },
+      {
+        "name": "sulfuric-acid",
+        "amount": 245
       }
     ]
   }
