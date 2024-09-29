@@ -5,6 +5,8 @@ import ru.spasitel.factorioautoplanner.data.*
 import ru.spasitel.factorioautoplanner.data.building.*
 import kotlin.math.min
 
+private const val roboport_timeout = 1000 * 60 * 60 * 8
+
 class GlobalUpgradeManager(private val globalPlanner: GlobalPlanner) {
     private val scoreManager = ScoreManager()
     private val logger = KotlinLogging.logger {}
@@ -356,12 +358,19 @@ class GlobalUpgradeManager(private val globalPlanner: GlobalPlanner) {
                 (it.to() in building.place.cells && newBest.map[it.from()] is RequestChest) ||
                         (it.from() in building.place.cells && newBest.map[it.to()] is ProviderChest)
             }
-        if (!GlobalPlanner.isSmelter &&
-            connections.size != 2 &&
-            !(connections.size == 1 &&
-                    building.type == BuildingType.ASSEMBLER &&
-                    (building as Assembler).recipe.contains("#"))
-        ) throw IllegalStateException("Wrong size ${connections.size} for $building")
+        if (!GlobalPlanner.isSmelter && connections.size != 2) {
+            if (connections.size != 1) {
+                throw IllegalStateException("Wrong size ${connections.size} for $building")
+            }
+            if (building.type == BuildingType.ASSEMBLER && !(building as Assembler).recipe.contains("#")) {
+                throw IllegalStateException("Wrong size ${connections.size} for $building")
+            } else if (building.type == BuildingType.SMELTER &&
+                !(building as Smelter).recipe.contains("#") && (building as Smelter).recipe != "steel-plate"
+            ) {
+                throw IllegalStateException("Wrong size ${connections.size} for $building")
+            }
+
+        }
         val chests =
             connections.map { if (newBest.map[it.to()]!! is ProviderChest || newBest.map[it.to()]!! is RequestChest) newBest.map[it.to()]!! else newBest.map[it.from()]!! }
                 .filter { chest ->
@@ -410,7 +419,7 @@ class GlobalUpgradeManager(private val globalPlanner: GlobalPlanner) {
                     same++
                 }
                 val time = System.currentTimeMillis()
-                if (time - startTime > 1000 * 60 * 60 * 1) {
+                if (time - startTime > roboport_timeout) {
                     logger.info { "New Upgrade roboports two timeout" }
                     return best
                 }

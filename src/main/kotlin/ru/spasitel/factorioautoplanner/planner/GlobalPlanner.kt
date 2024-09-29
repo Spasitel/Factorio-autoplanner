@@ -21,8 +21,8 @@ class GlobalPlanner {
         Utils.checkLiquids = true
 
         var double = false
-        var min = 1.61
-        var max = 2.3
+        var min = 1.8125
+        var max = 1.955
         var best: State? = null
         val delta = if (isSmelter) 1.0 else 0.05
 
